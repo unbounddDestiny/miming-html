@@ -30,7 +30,7 @@ on:
       render_js:
         description: "Pre-render with headless Chrome (for JS-heavy / SPA sites)"
         required: true
-        default: "false"
+        default: "true"
         type: choice
         options:
           - "false"
