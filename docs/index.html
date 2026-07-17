@@ -3,175 +3,568 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webpage Archiver Remote Console</title>
+    <title>Lofi Snapshots • Remote Archiver</title>
+    <!-- Embedded Google Fonts for the perfect Cozy Retro Coding Vibe -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    
     <style>
+        /* ==========================================================================
+           1. COZY VARIABLES (LOFI NIGHT - DEFAULT THEME)
+           ========================================================================== */
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --success: #10b981;
-            --error: #ef4444;
-            --warning: #f59e0b;
+            --bg-gradient: linear-gradient(135deg, #0e0d13 0%, #171520 100%);
+            --card-bg: rgba(26, 23, 37, 0.9);
+            --card-border: 1px solid rgba(138, 114, 182, 0.15);
+            --text-main: #e2def0;
+            --text-muted: #8e87a7;
+            
+            /* Lofi Tape Accent Palette (Sunset / Midnight Warmth) */
+            --accent-glow: rgba(224, 122, 112, 0.35);
+            --accent: #e07a70;        /* Pastel Coral Tape Roll */
+            --accent-hover: #f08d83;
+            --accent-secondary: #8c73b0; /* Cozy Midnight Lavender */
+            --success: #6bb098;       /* Warm Mint */
+            --error: #df6c75;         /* Cassette Red */
+            --input-bg: #121019;
+            --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+            --vinyl-color: #e07a70;
+            --scanline-opacity: 0.03;
+        }
+
+        /* ==========================================================================
+           2. COZY VARIABLES (LOFI MORNING - LIGHT CUSTOM CSS)
+           ========================================================================== */
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #f5f2eb 0%, #eae3d4 100%); /* Dusty warm paper */
+            --card-bg: rgba(253, 251, 247, 0.95);
+            --card-border: 1px solid rgba(161, 149, 127, 0.2);
+            --text-main: #4a4135; /* Warm charcoal */
+            --text-muted: #8c806d; /* Muted clay */
+            
+            /* Lofi Morning Accent Palette (Sunbeams & Matcha Coffee) */
+            --accent-glow: rgba(142, 168, 144, 0.3); /* Sage matcha leaf */
+            --accent: #8ea890;        /* Soft Sage Green */
+            --accent-hover: #9fbba1;
+            --accent-secondary: #c5a880; /* Dusty Honey Wood */
+            --success: #759a84;
+            --error: #cc6d66;
+            --input-bg: #faf8f5;
+            --shadow: 0 12px 30px rgba(115, 102, 85, 0.12);
+            --vinyl-color: #8ea890;
+            --scanline-opacity: 0.0;
+        }
+
+        /* ==========================================================================
+           3. BASE STRUCTURE
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            transition: background 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text);
+            font-family: 'Quicksand', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            min-height: 100vh;
+            padding: 40px 20px;
             display: flex;
+            align-items: center;
             justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Vinyl Grooves in background (Hardware-accelerated, zero-lag) */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 150vw;
+            height: 150vw;
+            border: 1px solid var(--text-muted);
+            opacity: 0.02;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Retro TV Scanlines overlay for the cozy night look */
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 255, 0, 0.03));
+            background-size: 100% 4px, 6px 100%;
+            opacity: var(--scanline-opacity);
+            pointer-events: none;
+            z-index: 9999;
         }
 
         .container {
             width: 100%;
-            max-width: 800px;
+            max-width: 650px;
             background: var(--card-bg);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: var(--card-border);
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+            position: relative;
+            z-index: 10;
         }
 
-        h1 { margin-top: 0; font-size: 24px; border-bottom: 2px solid #334155; padding-bottom: 10px; }
-        
-        .form-layout {
+        /* ==========================================================================
+           4. FLOATING HEADER & CONTROLS
+           ========================================================================== */
+        .header-area {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 20px;
             margin-bottom: 25px;
         }
 
-        .config-grid {
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 15px;
-            border-radius: 6px;
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .config-group { 
-            display: flex; 
-            flex-direction: column; 
-            width: 100%;
+        .lofi-icon {
+            font-size: 26px;
+            animation: pulse-slow 3s infinite ease-in-out;
         }
 
-        label { font-weight: bold; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); }
-        
-        input, select, textarea {
-            background: #0f172a;
-            border: 1px solid #475569;
-            border-radius: 6px;
-            color: #fff;
+        /* Theme Toggle & Lofi Sounds UI */
+        .theme-control {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-round {
+            background: var(--input-bg);
+            border: var(--card-border);
+            color: var(--text-main);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .btn-round:hover {
+            border-color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        /* ==========================================================================
+           5. TAB INTERFACES & CUSTOM LAYOUTS
+           ========================================================================== */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            background: var(--input-bg);
+            padding: 6px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: var(--card-border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
             padding: 12px;
             font-size: 14px;
-            box-sizing: border-box;
-            width: 100%;
-        }
-        input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); }
-
-        textarea { 
-            height: 240px; 
-            font-family: 'Fira Code', 'Courier New', monospace; 
-            line-height: 1.6;
-            resize: vertical; 
-        }
-
-        button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
             cursor: pointer;
-            transition: background 0.2s;
-            width: 100%;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
         }
-        button:hover { background: var(--accent-hover); }
-        button:disabled { background: #475569; cursor: not-allowed; }
 
-        .progress-container { margin-top: 25px; display: none; }
+        .tab-btn span.label-main {
+            font-size: 14px;
+        }
+        .tab-btn span.label-desc {
+            font-size: 10px;
+            font-weight: 500;
+            opacity: 0.7;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--accent);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ==========================================================================
+           6. FORM ELEMENTS
+           ========================================================================== */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        input, select, textarea {
+            background: var(--input-bg);
+            border: var(--card-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            padding: 14px;
+            font-size: 14px;
+            font-family: 'Quicksand', sans-serif;
+            width: 100%;
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea {
+            height: 180px;
+            font-family: 'Fira Code', monospace;
+            line-height: 1.6;
+            resize: none;
+        }
+
+        /* Cozy Quick Instructions block */
+        .cozy-guide {
+            background: rgba(var(--accent-glow), 0.03);
+            border-left: 3px solid var(--accent-secondary);
+            padding: 15px;
+            border-radius: 0 12px 12px 0;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .cozy-guide strong {
+            color: var(--text-main);
+        }
+
+        /* ==========================================================================
+           7. BUTTONS & VINYL PROGRESS ANIMATION
+           ========================================================================== */
+        .action-button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 16px 24px;
+            font-size: 15px;
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 15px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .action-button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .action-button:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        /* Dynamic Vinyl Loading Ring */
+        .progress-container {
+            margin-top: 30px;
+            display: none;
+            background: var(--input-bg);
+            border: var(--card-border);
+            padding: 20px;
+            border-radius: 16px;
+        }
+
+        .progress-layout {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .vinyl-wrapper {
+            position: relative;
+            width: 54px;
+            height: 54px;
+            flex-shrink: 0;
+        }
+
+        .vinyl-disk {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle, #2d2a3a 15%, #0c0b11 16%, #0c0b11 30%, #1f1c29 31%, #1f1c29 45%, #0c0b11 46%, #0c0b11 70%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: spin 3s linear infinite;
+            animation-play-state: paused;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vinyl-disk::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: var(--vinyl-color);
+            border-radius: 50%;
+        }
+
+        .vinyl-wrapper.spinning .vinyl-disk {
+            animation-play-state: running;
+        }
+
+        .progress-details {
+            flex-grow: 1;
+        }
+
+        .stage-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
         .progress-bar-wrapper {
-            background: #334155;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
             border-radius: 100px;
             overflow: hidden;
-            height: 22px;
-            width: 100%;
-            position: relative;
         }
+
         .progress-bar {
-            background: var(--accent);
             height: 100%;
             width: 0%;
-            transition: width 0.4s ease;
+            background: var(--accent);
+            border-radius: 100px;
         }
-        .progress-text { text-align: center; font-weight: bold; margin-top: 8px; font-size: 14px; }
 
+        /* ==========================================================================
+           8. LOFI CONSOLE OUTPUT & SNAPSHOT DELIVERY
+           ========================================================================== */
         .log-box {
-            background: #000;
-            font-family: monospace;
+            background: #09080d;
+            border: 1px solid rgba(138, 114, 182, 0.1);
+            font-family: 'Fira Code', monospace;
             padding: 15px;
-            border-radius: 6px;
-            height: 180px;
+            border-radius: 12px;
+            height: 150px;
             overflow-y: auto;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #a7f3d0;
+            margin-top: 25px;
+            font-size: 11px;
+            line-height: 1.6;
+            color: #92e0c2; /* Chill warm pastel mint */
             display: none;
-            border: 1px solid #334155;
         }
 
-        .download-zone { margin-top: 25px; text-align: center; display: none; }
-        .download-btn { background: var(--success); text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box; text-align: center; line-height: 48px; font-weight: bold; color: white; border-radius: 6px; cursor: pointer; }
-        .download-btn:hover { background: #059669; }
+        .download-zone {
+            margin-top: 30px;
+            background: rgba(107, 176, 152, 0.08);
+            border: 1px dashed var(--success);
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            display: none;
+            animation: fade-in 0.5s ease-out;
+        }
+
+        .download-zone h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: var(--success);
+        }
+
+        .download-zone p {
+            margin: 0 0 20px 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .download-btn {
+            background: var(--success);
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 15px;
+            transition: background 0.2s, transform 0.1s;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(107, 176, 152, 0.3);
+        }
+        .download-btn:hover {
+            background: #79c3ab;
+            transform: scale(1.02);
+        }
+
+        /* ==========================================================================
+           9. CUSTOM UTILITY ANIMATIONS
+           ========================================================================== */
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.6; transform: scale(0.96); }
+            50% { opacity: 1; transform: scale(1.04); }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Webpage Archiver Remote Console</h1>
+    <!-- Header Controls -->
+    <div class="header-area">
+        <h1><span class="lofi-icon">📼</span> Lofi Snapshots</h1>
+        <div class="theme-control">
+            <!-- Theme Changer -->
+            <button class="btn-round" id="themeToggler" onclick="toggleTheme()" title="Switch Light/Dark Palette">
+                🌙
+            </button>
+        </div>
+    </div>
+
+    <!-- Cozy Dynamic Nav Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('archive-tab', this)">
+            <span class="label-main">☕ Brew Snapshot</span>
+            <span class="label-desc">New background queue</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('resume-tab', this)">
+            <span class="label-main">📻 Pick Up & Go</span>
+            <span class="label-desc">Reconnect with Run ID</span>
+        </button>
+    </div>
     
+    <!-- Config Input Area -->
     <div class="form-layout">
-        <div class="config-grid">
-            <div class="config-group">
-                <label for="passkeyInput">Custom Secret Key:</label>
-                <input type="password" id="passkeyInput" placeholder="Enter your custom secret key to unlock runner...">
+        <!-- Persistent Security Lock -->
+        <div class="form-group">
+            <label for="passkeyInput">🔑 Private Access Key</label>
+            <input type="password" id="passkeyInput" placeholder="Slip in your custom secret key to clear system security...">
+        </div>
+
+        <!-- TAB 1: Main Process -->
+        <div id="archive-tab" class="tab-content active">
+            <div class="cozy-guide">
+                <strong>How to Brew:</strong> Drop your destination URLs below (one per line). Hit run, relax to some chill beats, and copy your unique <strong>Run ID</strong> in the output log to fetch your files later if you need to wander off!
+            </div>
+
+            <div class="form-group">
+                <label for="urlInput">📌 Destination URLs (One per line)</label>
+                <textarea id="urlInput" placeholder="https://example.com&#10;https://lofi-vibes.fm"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="renderJs">🌐 Rendering Engine</label>
+                <select id="renderJs">
+                    <option value="true">Headless Chrome (For Interactive Web Apps)</option>
+                    <option value="false">Static Fetch (Lightweight, blazing fast raw HTML)</option>
+                </select>
+            </div>
+            
+            <button class="action-button" id="actionBtn" onclick="startProcess()">
+                <span>⚡ Start Static Brew</span>
+            </button>
+        </div>
+
+        <!-- TAB 2: Resume Check Tool -->
+        <div id="resume-tab" class="tab-content">
+            <div class="cozy-guide">
+                <strong>Pick Up & Go:</strong> Kept a hold of your active Run ID? Pop it below, and we'll immediately dial into GitHub's satellite lines to see if your fresh bundle of archived pages is packed and ready.
+            </div>
+
+            <div class="form-group">
+                <label for="runIdInput">💿 GitHub Run ID</label>
+                <input type="text" id="runIdInput" placeholder="e.g. 9876543210">
+            </div>
+            
+            <button class="action-button" id="resumeBtn" onclick="resumeRunTracking()">
+                <span>📻 Tune Into Station</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Vinyl Record Active Audio Simulation Loader -->
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-layout">
+            <div class="vinyl-wrapper" id="vinylWrapper">
+                <div class="vinyl-disk"></div>
+            </div>
+            <div class="progress-details">
+                <div class="stage-title" id="progressStage">Ready to spin...</div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
             </div>
         </div>
-
-        <div class="config-group">
-            <label for="urlInput">Target URLs (One per line):</label>
-            <textarea id="urlInput" placeholder="https://example.com&#10;https://google.com&#10;https://github.com"></textarea>
-        </div>
-
-        <div class="config-group">
-            <label for="renderJs">Render JavaScript:</label>
-            <select id="renderJs">
-                <option value="true">True (Headless Chrome)</option>
-                <option value="false">False (Fast Raw Fetch)</option>
-            </select>
-        </div>
     </div>
 
-    <button id="actionBtn" onclick="startProcess()">Trigger Remote GitHub Archive</button>
-
-    <div class="progress-container" id="progressContainer">
-        <label id="progressStage">Pipeline Status:</label>
-        <div class="progress-bar-wrapper">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-        <div class="progress-text" id="progressText">0% Completed</div>
-    </div>
-
+    <!-- Embedded Terminal Outputs -->
     <div class="log-box" id="logBox"></div>
 
+    <!-- Cozy Snapshot Arrival Card -->
     <div class="download-zone" id="downloadZone">
-        <h3>GitHub Runner Pipeline Successful!</h3>
-        <button class="download-btn" id="dlBtn">Download Completed ZIP Artifact</button>
+        <h3>🎉 Vinyl Press Ready!</h3>
+        <p>Your webpage snapshots have been securely baked and packaged inside a standard zip cassette container.</p>
+        <button class="download-btn" id="dlBtn">Download Completed ZIP Package</button>
     </div>
 </div>
 
@@ -181,6 +574,27 @@
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
 
+    // Theme Switch Logic with CSS variable swaps
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const toggler = document.getElementById('themeToggler');
+        if (currentTheme === 'light') {
+            document.documentElement.removeAttribute('data-theme');
+            toggler.innerText = '🌙';
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            toggler.innerText = '☀️';
+        }
+    }
+
+    function switchTab(tabId, el) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        el.classList.add('active');
+    }
+
     function getCustomSecretKey() {
         return document.getElementById('passkeyInput').value.trim();
     }
@@ -188,9 +602,9 @@
     function appendLog(text, type = 'info') {
         const logBox = document.getElementById('logBox');
         logBox.style.display = 'block';
-        let color = '#a7f3d0'; 
-        if (type === 'error') color = '#ef4444';
-        if (type === 'warn') color = '#fbbf24';
+        let color = '#92e0c2'; 
+        if (type === 'error') color = '#df6c75';
+        if (type === 'warn') color = '#e9c46a';
         logBox.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}</span><br>`;
         logBox.scrollTop = logBox.scrollHeight;
     }
@@ -200,17 +614,18 @@
         const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
 
         if (!customSecretKey || rawUrls.length === 0) {
-            alert('Please provide your Custom Secret Key and target URLs.');
+            alert('Grab your security key and drop some URLs to begin!');
             return;
         }
 
         document.getElementById('actionBtn').disabled = true;
         document.getElementById('downloadZone').style.display = 'none';
         document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('vinylWrapper').classList.add('spinning');
         document.getElementById('logBox').innerHTML = '';
         
-        updateProgress(5, "Contacting secure abstraction backend server...");
-        appendLog("Forwarding secret authorization verification to proxy host...");
+        updateProgress(5, "Contacting proxy transmitter...");
+        appendLog("Forwarding secret authorization code to background host...");
 
         try {
             const backendRes = await fetch(BACKEND_URL, {
@@ -220,7 +635,7 @@
                     'X-Custom-Auth': customSecretKey
                 },
                 body: JSON.stringify({
-                    urls: rawUrls, // Send the list of URLs cleanly as a JSON array
+                    urls: rawUrls,
                     renderJs: document.getElementById('renderJs').value
                 })
             });
@@ -228,23 +643,23 @@
             const data = await backendRes.json();
 
             if (!backendRes.ok) {
-                throw new Error(data.error || "Server transaction rejected.");
+                throw new Error(data.error || "Transmitter rejected the sequence.");
             }
 
-            appendLog("Backend successfully verified code and triggered GitHub workflow event.");
-            updateProgress(20, "Waiting for GitHub server provisioning...");
+            appendLog("Success: Code cleared. Triggered GitHub server dispatch pipeline.");
+            updateProgress(20, "Waiting for virtual worker spin-up...");
             
             setTimeout(() => trackWorkflowRun(), 10000);
 
         } catch (error) {
-            appendLog(`Authorization/Execution Halt: ${error.message}`, 'error');
+            appendLog(`Signal Interrupted: ${error.message}`, 'error');
             resetUI();
         }
     }
 
     async function trackWorkflowRun() {
         try {
-            appendLog("Scanning secure proxy for the active worker ID...");
+            appendLog("Tuning signal frequency to locate active job identification marker...");
             
             const response = await fetch(`${BACKEND_URL}?action=track`, {
                 method: 'GET',
@@ -252,18 +667,46 @@
             });
             const data = await response.json();
             
-            if (!response.ok) throw new Error(data.error || "Failed to contact proxy tracking repository logs.");
-            if (!data.runId) throw new Error("No visible logs found on repository pipeline record.");
+            if (!response.ok) throw new Error(data.error || "Failed to contact proxy tracking index.");
+            if (!data.runId) throw new Error("No active jobs logged. Try dispatching again.");
 
             const runId = data.runId;
-            appendLog(`Identified Active Tracker Target: Run ID #${runId}`);
+            appendLog(`TRACKED -> Unique Run ID: #${runId}`);
+            appendLog(`💡 Tip: Keep this Run ID to "Pick Up & Go" later if you close this window!`);
 
-            pollInterval = setInterval(() => checkStatus(runId), 7000);
+            startPolling(runId);
 
         } catch (err) {
-            appendLog(`Polling locator fault: ${err.message}`, 'error');
+            appendLog(`Locator error: ${err.message}`, 'error');
             resetUI();
         }
+    }
+
+    async function resumeRunTracking() {
+        const customSecretKey = getCustomSecretKey();
+        const runId = document.getElementById('runIdInput').value.trim();
+
+        if (!customSecretKey || !runId) {
+            alert('Please supply both your Security Key and the Run ID!');
+            return;
+        }
+
+        document.getElementById('resumeBtn').disabled = true;
+        document.getElementById('downloadZone').style.display = 'none';
+        document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('vinylWrapper').classList.add('spinning');
+        document.getElementById('logBox').innerHTML = '';
+
+        appendLog(`Manually dialing into channel for Run ID: #${runId}...`);
+        updateProgress(10, "Attempting satellite handshakes...");
+
+        startPolling(runId);
+    }
+
+    function startPolling(runId) {
+        if (pollInterval) clearInterval(pollInterval);
+        checkStatus(runId);
+        pollInterval = setInterval(() => checkStatus(runId), 7000);
     }
 
     async function checkStatus(runId) {
@@ -274,37 +717,37 @@
             });
             const runInfo = await response.json();
             
-            if (!response.ok) throw new Error(runInfo.error || "Failed to update tracking run status.");
+            if (!response.ok) throw new Error(runInfo.error || "Failed to update status parameters.");
             
             const status = runInfo.status; 
             const conclusion = runInfo.conclusion; 
 
-            appendLog(`Worker status read-update: ${status}...`);
+            appendLog(`Status update: ${status}...`);
 
             if (status === "queued") {
-                updateProgress(35, "Job in global GitHub Queue...");
+                updateProgress(35, "Spooling queue tapes... (Queued)");
             } else if (status === "in_progress") {
-                updateProgress(65, "Archiver processing targeted assets... (Running)");
+                updateProgress(65, "Baking HTML assets inside engine... (Running)");
             } else if (status === "completed") {
                 clearInterval(pollInterval);
                 
                 if (conclusion === "success") {
-                    updateProgress(90, "Processing complete! Accessing download artifact assets...");
+                    updateProgress(90, "Finished baking snaps! Accessing safe repository package...");
                     await locateAndLinkArtifact(runId);
                 } else {
-                    updateProgress(100, `Execution halted with state error: ${conclusion}`, 'error');
-                    appendLog(`Pipeline error return code match detected. Check repo action panel logs.`, 'error');
+                    updateProgress(100, `Halt error state detected: ${conclusion}`, 'error');
+                    appendLog(`Job returned error status. Check GitHub Actions console if problems persist.`, 'error');
                     resetUI();
                 }
             }
         } catch (err) {
-            appendLog(`Error polling check status updates: ${err.message}`, 'error');
+            appendLog(`Connection drop: ${err.message}`, 'error');
         }
     }
 
     async function locateAndLinkArtifact(runId) {
         try {
-            appendLog("Searching target download links via backend proxy...");
+            appendLog("Generating signed safe download link wrapper...");
             
             const response = await fetch(`${BACKEND_URL}?action=getArtifact&runId=${runId}`, {
                 method: 'GET',
@@ -312,43 +755,50 @@
             });
             const data = await response.json();
 
-            if (!response.ok) throw new Error(data.error || "Failed to clear artifact validation.");
+            if (!response.ok) throw new Error(data.error || "Failed secure verification checks.");
             if (!data.artifactId) {
-                throw new Error("Completed run without locating 'all-snapshots' file container output target.");
+                throw new Error("Job completed but was unable to output dynamic snap file container.");
             }
 
             const downloadUrl = `https://github.com/${REPO}/actions/runs/${runId}/artifacts/${data.artifactId}`;
             
-            updateProgress(100, "Success! Package Ready.");
-            document.getElementById('progressBar').style.backgroundColor = 'var(--success)';
+            updateProgress(100, "Tapes processed successfully.");
+            document.getElementById('vinylWrapper').classList.remove('spinning');
             
             const dlBtn = document.getElementById('dlBtn');
             dlBtn.onclick = () => {
                 window.open(downloadUrl, '_blank');
-                appendLog("Redirected to public GitHub artifact package download link.");
+                appendLog("Transferring to public package repository storage.");
             };
             
             document.getElementById('downloadZone').style.display = 'block';
-            appendLog(`[Finished] Package located! Download link armed.`);
-            document.getElementById('actionBtn').disabled = false;
+            appendLog(`[Clear] Bundle package mounted. Sound out!`);
+            resetUI();
 
         } catch (err) {
-            appendLog(`Artifact mapping resolution failed: ${err.message}`, 'error');
+            appendLog(`Artifact packaging failure: ${err.message}`, 'error');
             resetUI();
         }
     }
 
     function updateProgress(percentage, text, mode = 'normal') {
         const bar = document.getElementById('progressBar');
-        const txt = document.getElementById('progressText');
+        const txt = document.getElementById('progressStage');
         bar.style.width = `${percentage}%`;
-        txt.innerText = `${percentage}% - ${text}`;
-        if(mode === 'error') bar.style.backgroundColor = 'var(--error)';
+        txt.innerText = `${percentage}% — ${text}`;
+        if(mode === 'error') {
+            bar.style.backgroundColor = 'var(--error)';
+            document.getElementById('vinylWrapper').classList.remove('spinning');
+        } else {
+            bar.style.backgroundColor = 'var(--accent)';
+        }
     }
 
     function resetUI() {
         if(pollInterval) clearInterval(pollInterval);
+        document.getElementById('vinylWrapper').classList.remove('spinning');
         document.getElementById('actionBtn').disabled = false;
+        document.getElementById('resumeBtn').disabled = false;
     }
 </script>
 
