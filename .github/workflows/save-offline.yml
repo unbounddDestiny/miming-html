@@ -30,137 +30,127 @@ jobs:
         npm install playwright
         npx playwright install chromium --with-deps
 
-    - name: Execute Native Base64 Inline Scraping
+    - name: Execute Resilient Base64 Compilation Script
       run: |
         cat << 'EOF' > capture.js
         const { chromium } = require('playwright');
         const fs = require('fs');
 
         (async () => {
-          console.log("Launching automated browser engine...");
+          console.log("Launching robust automated browser session...");
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            viewport: { width: 1200, height: 2500 }
+            viewport: { width: 1280, height: 1600 }
           });
           const page = await context.newPage();
 
-          console.log("Navigating to target URL...");
-          await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 90000 });
-
-          console.log("Executing thorough scroll-down loop to un-lazy-load ALL content...");
-          await page.evaluate(async () => {
-            await new Promise((resolve) => {
-              let totalHeight = 0;
-              const distance = 350; // Smaller distance to ensure no images are skipped
-              const timer = setInterval(() => {
-                const scrollHeight = document.body.scrollHeight;
-                window.scrollBy(0, distance);
-                totalHeight += distance;
-
-                // Increased limit to 250,000px to fully capture deep webcomic chapters
-                if (totalHeight >= scrollHeight || totalHeight > 250000) { 
-                  clearInterval(timer);
-                  resolve();
-                }
-              }, 100); // Slightly slower to give the network stable time to register triggers
-            });
+          // Intercept and cache image buffers as they download over the wire to bypass CORS completely
+          const imageBufferCache = {};
+          page.on('response', async (response) => {
+            const url = response.url();
+            const contentType = response.headers()['content-type'] || '';
+            if (contentType.startsWith('image/') && response.status() === 200) {
+              try {
+                const buffer = await response.buffer();
+                imageBufferCache[url] = `data:${contentType};base64,${buffer.toString('base64')}`;
+              } catch (e) {
+                // Squelch closed-stream mapping reads
+              }
+            }
           });
 
-          console.log("Waiting for network traffic to settle completely...");
+          console.log("Navigating to target web page...");
+          await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 90000 });
+
+          console.log("Executing strict progressive auto-scroll to force load comic panels...");
+          // Dynamic scroll window that stops only when the absolute document bottom stays fixed
+          let previousHeight = 0;
+          let currentHeight = await page.evaluate(() => document.body.scrollHeight);
+          let scrollCounter = 0;
+
+          while (previousHeight !== currentHeight && scrollCounter < 150) {
+            await page.evaluate(() => window.scrollBy(0, 800));
+            await page.waitForTimeout(250); // Gives background lazy loaders a window to initialize
+            previousHeight = currentHeight;
+            currentHeight = await page.evaluate(() => document.body.scrollHeight);
+            scrollCounter++;
+          }
+
+          console.log("Forcing final validation pass for asynchronous images...");
           await page.waitForLoadState('networkidle');
-          await page.waitForTimeout(6000); // Generous pause to complete lingering image streams
+          await page.waitForTimeout(4000);
 
-          console.log("Extracting, encoding, and fixing page styles...");
-          await page.evaluate(async () => {
-            // 1. Download images and convert them into raw inline Base64 data strings
-            const convertImageToBase64 = async (imgElement) => {
-              try {
-                const canvas = document.createElement('canvas');
-                canvas.width = imgElement.naturalWidth || imgElement.width;
-                canvas.height = imgElement.naturalHeight || imgElement.height;
-                if (canvas.width === 0 || canvas.height === 0) return null;
-                
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(imgElement, 0, 0);
-                return canvas.toDataURL('image/jpeg', 0.85);
-              } catch (e) {
-                try {
-                  const res = await fetch(imgElement.src);
-                  const blob = await res.blob();
-                  return await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blob);
-                  });
-                } catch (err) {
-                  return null;
-                }
-              }
-            };
-
+          console.log("Injecting layout compiler and packing original formatting assets...");
+          await page.evaluate(async (cacheMap) => {
+            // 1. Process and inline every image on the page using cached network buffers
             const images = Array.from(document.querySelectorAll('img'));
             for (const img of images) {
-              const srcTarget = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
-              if (srcTarget && !srcTarget.startsWith('data:')) {
-                const base64Data = await convertImageToBase64(img);
-                if (base64Data) {
-                  img.src = base64Data;
+              // Resolve every potential source naming convention webcomics use
+              const srcTarget = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-src-img');
+              if (srcTarget) {
+                // Match relative asset strings to their absolute URLs
+                const absoluteUrl = new URL(srcTarget, window.location.href).href;
+                if (cacheMap[absoluteUrl]) {
+                  img.src = cacheMap[absoluteUrl];
                   img.removeAttribute('srcset');
                   img.removeAttribute('loading');
                   img.removeAttribute('data-src');
                   img.removeAttribute('data-lazy-src');
+                  img.removeAttribute('data-src-img');
                 }
               }
             }
 
-            // 2. Inline all CSS from external sheets directly into the document head
-            const styles = Array.from(document.styleSheets);
-            let combinedCss = '';
-            for (const sheet of styles) {
+            // 2. Fetch and bake the active CSS rules directly into the page head
+            let unifiedCss = '';
+            for (const sheet of Array.from(document.styleSheets)) {
               try {
-                const rules = Array.from(sheet.cssRules);
-                for (const rule of rules) {
-                  combinedCss += rule.cssText + '\n';
+                for (const rule of Array.from(sheet.cssRules)) {
+                  unifiedCss += rule.cssText + '\n';
                 }
-              } catch (e) {
-                // Skips security blocks on stylesheet evaluation
+              } catch (crossOriginErr) {
+                // Fallback: If stylesheet is locked by CORS, rebuild reference targets
+                if (sheet.href) {
+                  try {
+                    const res = await fetch(sheet.href);
+                    const cssText = await res.text();
+                    unifiedCss += cssText + '\n';
+                  } catch (e) {}
+                }
               }
             }
-            const styleElement = document.createElement('style');
-            styleElement.textContent = combinedCss;
-            document.head.appendChild(styleElement);
+            const inlineStyleTag = document.createElement('style');
+            inlineStyleTag.textContent = unifiedCss;
+            document.head.appendChild(inlineStyleTag);
 
-            // 3. Inject global containment fixes to prevent oversized elements
-            const customFixes = document.createElement('style');
-            customFixes.textContent = `
-              /* Fixes layout breakouts by boxing the entire viewport context */
-              html, body { max-width: 100% !important; overflow-x: hidden !important; }
-              
-              /* Prevents images from growing larger than your device screen width */
-              img, .comic-panel, .wp-manga-chapter-img img { 
+            // 3. Enforce structural containment rules to fix formatting and giant images
+            const scaleCorrectionTag = document.createElement('style');
+            scaleCorrectionTag.textContent = `
+              html, body { max-width: 100% !important; overflow-x: hidden !important; width: 100% !important; }
+              img, .wp-manga-chapter-img img, picture img { 
                 max-width: 100% !important; 
+                width: 100% !important; 
                 height: auto !important; 
-                width: 100% !important;
                 object-fit: contain !important;
+                display: block !important;
+                margin: 0 auto !important;
               }
-              
-              /* Overrides breaking widths on dynamic layout wrappers */
-              div, section, main, article, .reader-area, #chapter-wrapper { 
+              div, section, main, article, [class*="wrapper"], [class*="content"] { 
                 max-width: 100% !important; 
                 width: auto !important; 
-                box-sizing: border-box !important;
+                box-sizing: border-box !important; 
               }
             `;
-            document.head.appendChild(customFixes);
-          });
+            document.head.appendChild(scaleCorrectionTag);
+          }, imageBufferCache);
 
-          console.log("Saving finalized layout file...");
-          const isolatedHtml = await page.content();
-          fs.writeFileSync(process.env.OUTPUT_FILENAME, isolatedHtml);
+          console.log("Exporting perfectly preserved universal HTML artifact...");
+          const compiledLayoutHtml = await page.content();
+          fs.writeFileSync(process.env.OUTPUT_FILENAME, compiledLayoutHtml);
           
           await browser.close();
-          console.log("Process complete!");
+          console.log("Process completely successful!");
         })();
         EOF
         
