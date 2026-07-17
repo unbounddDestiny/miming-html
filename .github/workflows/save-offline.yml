@@ -41,14 +41,15 @@ jobs:
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            viewport: { width: 1000, height: 2500 } // Width optimised for mobile/vertical viewing
+            viewport: { width: 1200, height: 2500 }
           });
           const page = await context.newPage();
 
           console.log("Navigating to target URL...");
           await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 90000 });
 
-          console.log("Executing auto-scroll loop to wake up lazy-loaded panels...");
+          console.log("Executing deep scroll-down loop to uncover all comic panels...");
+          // Loops dynamically until the layout height stops increasing
           await page.evaluate(async () => {
             await new Promise((resolve) => {
               let totalHeight = 0;
@@ -58,21 +59,25 @@ jobs:
                 window.scrollBy(0, distance);
                 totalHeight += distance;
 
-                if (totalHeight >= scrollHeight || totalHeight > 150000) { 
+                // Stop scrolling if we reach the genuine bottom or safety limit (extended to 300,000px)
+                if (totalHeight >= scrollHeight || totalHeight > 300000) { 
                   clearInterval(timer);
+                  window.scrollTo(0, 0); // Scroll back up to ensure all rendering pipelines initialize
                   resolve();
                 }
-              }, 80);
+              }, 60); // Faster scroll intervals to process large chapters efficiently
             });
           });
 
-          console.log("Waiting for network traffic to drop...");
+          console.log("Waiting for network traffic to drop and lazy loads to complete...");
           await page.waitForLoadState('networkidle');
-          await page.waitForTimeout(5000);
+          await page.waitForTimeout(6000);
 
-          console.log("Extracting, encoding, and fixing page styles...");
-          await page.evaluate(async () => {
-            // 1. Download images and convert them into raw inline Base64 data strings
+          console.log("Extracting titles and encoding comic panels directly into custom array templates...");
+          const structuralData = await page.evaluate(async () => {
+            const pageTitle = document.title || "Comic Chapter";
+            
+            // Conversion fallback mechanics
             const convertImageToBase64 = async (imgElement) => {
               try {
                 const canvas = document.createElement('canvas');
@@ -82,7 +87,7 @@ jobs:
                 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(imgElement, 0, 0);
-                return canvas.toDataURL('image/jpeg', 0.9);
+                return canvas.toDataURL('image/jpeg', 0.85); // 85% compression keeps files highly performant
               } catch (e) {
                 try {
                   const res = await fetch(imgElement.src);
@@ -98,53 +103,82 @@ jobs:
               }
             };
 
-            const images = Array.from(document.querySelectorAll('img'));
-            for (const img of images) {
-              const srcTarget = img.src;
-              if (srcTarget && !srcTarget.startsWith('data:')) {
+            // Grab all images residing within standard content layouts or image wrapper zones
+            const rawImages = Array.from(document.querySelectorAll('img'));
+            const imageBase64Array = [];
+
+            for (const img of rawImages) {
+              const srcTarget = img.src || img.getAttribute('data-src');
+              // Filters out small layout files like avatar icons, tracking pixels, or interface logos
+              if (srcTarget && (img.naturalWidth > 250 || img.width > 250)) {
                 const base64Data = await convertImageToBase64(img);
                 if (base64Data) {
-                  img.src = base64Data;
-                  img.removeAttribute('srcset');
-                  img.removeAttribute('loading');
-                  img.removeAttribute('data-src');
+                  imageBase64Array.push(base64Data);
                 }
               }
             }
-
-            // 2. Inline all CSS from external sheets directly into the document head
-            const styles = Array.from(document.styleSheets);
-            let combinedCss = '';
-            for (const sheet of styles) {
-              try {
-                const rules = Array.from(sheet.cssRules);
-                for (const rule of rules) {
-                  combinedCss += rule.cssText + '\n';
-                }
-              } catch (e) {
-                // Skips security blocks on stylesheet evaluation
-              }
-            }
-            const styleElement = document.createElement('style');
-            styleElement.textContent = combinedCss;
-            document.head.appendChild(styleElement);
-
-            // 3. Inject custom layout modifications to guarantee seamless mobile styling
-            const customFixes = document.createElement('style');
-            customFixes.textContent = `
-              body, html { margin: 0 !important; padding: 0 !important; background: #111 !important; width: 100% !important; }
-              img { display: block !important; width: 100% !important; max-width: 100% !important; height: auto !important; margin: 0 auto !important; }
-              #chapter-wrapper, .chapter-content, .reader-area, .wp-manga-chapter-img { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 auto !important; }
-              div, p, section { max-width: 100% !important; }
-            `;
-            document.head.appendChild(customFixes);
+            return { title: pageTitle, panels: imageBase64Array };
           });
 
-          console.log("Saving finalized layout file...");
-          const isolatedHtml = await page.content();
-          fs.writeFileSync(process.env.OUTPUT_FILENAME, isolatedHtml);
-          
           await browser.close();
+
+          console.log(`Successfully compiled ${structuralData.panels.length} panel streams. Rebuilding custom HTML output file...`);
+          
+          // Generate a custom, clean HTML template from scratch to enforce perfect layout rules
+          const isolatedHtmlTemplate = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+              <title>${structuralData.title}</title>
+              <style>
+                  * { box-sizing: border-box; }
+                  body, html { 
+                      margin: 0; 
+                      padding: 0; 
+                      background-color: #0e0e11; 
+                      width: 100%; 
+                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                  }
+                  .custom-reader-container {
+                      width: 100%;
+                      max-width: 800px; /* Standard webcomic desktop constraint */
+                      margin: 0 auto;
+                      display: flex;
+                      flex-direction: column;
+                      background-color: #000000;
+                  }
+                  .comic-panel {
+                      display: block;
+                      width: 100% !important;
+                      max-width: 100% !important;
+                      height: auto !important;
+                      margin: 0;
+                      padding: 0;
+                      border: none;
+                  }
+                  .header-banner {
+                      padding: 20px;
+                      color: #ffffff;
+                      text-align: center;
+                      background-color: #16161a;
+                      font-size: 18px;
+                      font-weight: bold;
+                      border-bottom: 1px solid #232329;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="custom-reader-container">
+                  <div class="header-banner">${structuralData.title}</div>
+                  ${structuralData.panels.map(base64 => `<img class="comic-panel" src="${base64}" alt="Comic Panel Image" />`).join('\n')}
+              </div>
+          </body>
+          </html>
+          `;
+
+          fs.writeFileSync(process.env.OUTPUT_FILENAME, isolatedHtmlTemplate);
           console.log("Process complete!");
         })();
         EOF
