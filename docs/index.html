@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lofi Snapshots • Remote Archiver</title>
+    <title>The Cozy Brewroom • Digital Infusions</title>
     <!-- Embedded Google Fonts for the perfect Cozy Retro Coding Vibe -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +11,7 @@
     
     <style>
         /* ==========================================================================
-           1. COZY VARIABLES (LOFI NIGHT - DEFAULT THEME)
+           1. COZY VARIABLES (MIDNIGHT BREW - DEFAULT DARK THEME)
            ========================================================================== */
         :root {
             --bg-gradient: linear-gradient(135deg, #0e0d13 0%, #171520 100%);
@@ -20,13 +20,13 @@
             --text-main: #e2def0;
             --text-muted: #8e87a7;
             
-            /* Lofi Tape Accent Palette (Sunset / Midnight Warmth) */
+            /* Lofi Tea & Coffee Accent Palette */
             --accent-glow: rgba(224, 122, 112, 0.35);
-            --accent: #e07a70;        /* Pastel Coral Tape Roll */
+            --accent: #e07a70;        /* Pastel Coral Mug Warmth */
             --accent-hover: #f08d83;
-            --accent-secondary: #8c73b0; /* Cozy Midnight Lavender */
-            --success: #6bb098;       /* Warm Mint */
-            --error: #df6c75;         /* Cassette Red */
+            --accent-secondary: #8c73b0; /* Lavender Chamomile */
+            --success: #6bb098;       /* Warm Mint Green */
+            --error: #df6c75;         /* Overboiled Red */
             --input-bg: #121019;
             --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
             --vinyl-color: #e07a70;
@@ -34,20 +34,20 @@
         }
 
         /* ==========================================================================
-           2. COZY VARIABLES (LOFI MORNING - LIGHT CUSTOM CSS)
+           2. COZY VARIABLES (MORNING STEW - LIGHT THEME)
            ========================================================================== */
         [data-theme="light"] {
-            --bg-gradient: linear-gradient(135deg, #f5f2eb 0%, #eae3d4 100%); /* Dusty warm paper */
+            --bg-gradient: linear-gradient(135deg, #f5f2eb 0%, #eae3d4 100%); /* Dusty warm paper & cream */
             --card-bg: rgba(253, 251, 247, 0.95);
             --card-border: 1px solid rgba(161, 149, 127, 0.2);
-            --text-main: #4a4135; /* Warm charcoal */
-            --text-muted: #8c806d; /* Muted clay */
+            --text-main: #4a4135; /* Warm coffee grounds */
+            --text-muted: #8c806d; /* Muted clay pot */
             
-            /* Lofi Morning Accent Palette (Sunbeams & Matcha Coffee) */
+            /* Lofi Morning Accent Palette (Sunbeams & Matcha Cafe) */
             --accent-glow: rgba(142, 168, 144, 0.3); /* Sage matcha leaf */
             --accent: #8ea890;        /* Soft Sage Green */
             --accent-hover: #9fbba1;
-            --accent-secondary: #c5a880; /* Dusty Honey Wood */
+            --accent-secondary: #c5a880; /* Honey Stir Stick */
             --success: #759a84;
             --error: #cc6d66;
             --input-bg: #faf8f5;
@@ -82,12 +82,11 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            /* Allow scrolling within container boundaries safely */
             overflow-y: auto; 
             padding: 40px 20px;
         }
 
-        /* Ambient Vinyl Grooves in background (Hardware-accelerated, zero-lag) */
+        /* Ambient Coaster Grooves in background */
         body::before {
             content: '';
             position: fixed;
@@ -103,7 +102,7 @@
             z-index: 0;
         }
 
-        /* Retro TV Scanlines overlay for the cozy night look */
+        /* Retro Cabin Scanlines overlay */
         body::after {
             content: " ";
             display: block;
@@ -127,7 +126,7 @@
             backdrop-filter: blur(8px);
             position: relative;
             z-index: 10;
-            margin: auto; /* Keeps centered elegantly */
+            margin: auto; 
         }
 
         /* ==========================================================================
@@ -157,7 +156,7 @@
             animation: pulse-slow 3s infinite ease-in-out;
         }
 
-        /* Theme Toggle & Lofi Sounds UI */
+        /* Theme Toggle & Cozy Sounds UI */
         .theme-control {
             display: flex;
             gap: 10px;
@@ -296,7 +295,7 @@
         }
 
         /* ==========================================================================
-           6B. BRAND NEW LOFI INTERACTIVE DESIGNED CAPTCHA UI
+           6B. COZY POT CAPTCHA UI
            ========================================================================== */
         .lofi-captcha-container {
             background: var(--input-bg);
@@ -357,7 +356,7 @@
         }
 
         /* ==========================================================================
-           7. BUTTONS & VINYL PROGRESS ANIMATION
+           7. BUTTONS & TEAPOT PROGRESS ANIMATION
            ========================================================================== */
         .action-button {
             background: var(--accent);
@@ -390,7 +389,7 @@
             opacity: 0.6;
         }
 
-        /* Dynamic Vinyl Loading Ring */
+        /* Cozy Kettle Loading Ring */
         .progress-container {
             margin-top: 30px;
             display: none;
@@ -463,7 +462,7 @@
         }
 
         /* ==========================================================================
-           8. LOFI CONSOLE OUTPUT & SNAPSHOT DELIVERY
+           8. BREWROOM CONSOLE OUTPUT & PACKAGE DELIVERY
            ========================================================================== */
         .log-box {
             background: #09080d;
@@ -476,7 +475,7 @@
             margin-top: 25px;
             font-size: 11px;
             line-height: 1.6;
-            color: #92e0c2; /* Chill warm pastel mint */
+            color: #92e0c2; /* Matcha Green console */
             display: none;
         }
 
@@ -543,11 +542,11 @@
 <div class="container">
     <!-- Header Controls -->
     <div class="header-area">
-        <h1><span class="lofi-icon">📼</span> Lofi Snapshots</h1>
+        <h1><span class="lofi-icon">☕</span> The Cozy Brewroom</h1>
         <div class="theme-control">
-            <!-- Theme Changer -->
-            <button class="btn-round" id="themeToggler" onclick="toggleTheme()" title="Switch Light/Dark Palette">
-                M1
+            <!-- Theme Changer (Default text set on initialization in JS) -->
+            <button class="btn-round" id="themeToggler" onclick="toggleTheme()" title="Toggle Cozy Light/Dark Palette">
+                🌙
             </button>
         </div>
     </div>
@@ -555,12 +554,12 @@
     <!-- Cozy Dynamic Nav Tabs -->
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('archive-tab', this)">
-            <span class="label-main">☕ Brew Snapshot</span>
-            <span class="label-desc">New background queue</span>
+            <span class="label-main">🍵 Steep Blend</span>
+            <span class="label-desc">New infusion queue</span>
         </button>
         <button class="tab-btn" onclick="switchTab('resume-tab', this)">
-            <span class="label-main">📻 Pick Up & Go</span>
-            <span class="label-desc">Reconnect with Run ID</span>
+            <span class="label-main">🍯 Pour & Go</span>
+            <span class="label-desc">Reconnect with Brew ID</span>
         </button>
     </div>
     
@@ -568,75 +567,75 @@
     <div class="form-layout">
         <!-- Persistent Security Lock -->
         <div class="form-group">
-            <label for="passkeyInput">🔑 Private Access Key</label>
-            <input type="password" id="passkeyInput" placeholder="Slip in your custom secret key to clear system security...">
+            <label for="passkeyInput">🔑 Private Tavern Key</label>
+            <input type="password" id="passkeyInput" placeholder="Enter your secret tavern key to unlock the pantry...">
         </div>
 
         <!-- TAB 1: Main Process -->
         <div id="archive-tab" class="tab-content active">
             <div class="cozy-guide">
-                <strong>How to Brew:</strong> Drop your destination URLs below (one per line). Hit run, relax to some chill beats, and copy your unique <strong>Run ID</strong> in the output log to fetch your files later if you need to wander off!
+                <strong>How to Brew:</strong> Paste your recipe URLs below (one per line). Hit run, listen to the crackling fire, and copy your unique <strong>Brew ID</strong> from the kitchen log so you can fetch your jar later!
             </div>
 
             <div class="form-group">
-                <label for="urlInput">📌 Destination URLs (One per line)</label>
+                <label for="urlInput">📌 Recipe URLs (One per line)</label>
                 <textarea id="urlInput" placeholder="https://example.com&#10;https://lofi-vibes.fm"></textarea>
             </div>
 
             <div class="form-group">
-                <label for="renderJs">🌐 Rendering Engine</label>
+                <label for="renderJs">🏺 Boiling Engine</label>
                 <select id="renderJs">
-                    <option value="true">Headless Chrome (For Interactive Web Apps)</option>
-                    <option value="false">Static Fetch (Lightweight, blazing fast raw HTML)</option>
+                    <option value="true">Headless Kettle (Stir interactive JavaScript scripts)</option>
+                    <option value="false">Static Infusion (Classic, swift herbal brew)</option>
                 </select>
             </div>
 
             <!-- Integrated Custom Audio Wave Captcha Component -->
             <div class="form-group">
-                <label>📻 Human Radio Check</label>
+                <label>📻 Human Steam Check</label>
                 <div class="lofi-captcha-container">
                     <div class="captcha-header-wrapper">
                         <div class="captcha-visual-pane">
                             <canvas id="captchaCanvas" width="160" height="50"></canvas>
-                            <button type="button" class="btn-round btn-captcha-refresh" onclick="generateCaptcha()" title="Change Radio Station (Refresh)">🔄</button>
+                            <button type="button" class="btn-round btn-captcha-refresh" onclick="generateCaptcha()" title="Change Steam Frequency (Refresh)">🔄</button>
                         </div>
                     </div>
                     <div class="captcha-input-row">
-                        <input type="text" id="captchaInput" autocomplete="off" placeholder="Tune text details...">
+                        <input type="text" id="captchaInput" autocomplete="off" placeholder="Type steaming text...">
                     </div>
                 </div>
             </div>
             
             <button class="action-button" id="actionBtn" onclick="startProcess()">
-                <span>⚡ Start Static Brew</span>
+                <span>🔥 Begin Infusion</span>
             </button>
         </div>
 
         <!-- TAB 2: Resume Check Tool -->
         <div id="resume-tab" class="tab-content">
             <div class="cozy-guide">
-                <strong>Pick Up & Go:</strong> Kept a hold of your active Run ID? Pop it below, and we'll immediately dial into GitHub's satellite lines to see if your fresh bundle of archived pages is packed and ready.
+                <strong>Pour & Go:</strong> Have an active Brew ID from earlier? Feed it below, and we'll check the pantry racks to see if your fresh batch of pages is bottled and ready for pickup.
             </div>
 
             <div class="form-group">
-                <label for="runIdInput">💿 GitHub Run ID</label>
+                <label for="runIdInput">🏺 Cozy Brew ID</label>
                 <input type="text" id="runIdInput" placeholder="e.g. 9876543210">
             </div>
             
             <button class="action-button" id="resumeBtn" onclick="resumeRunTracking()">
-                <span>📻 Tune Into Station</span>
+                <span>🧉 Check Pantry Shelf</span>
             </button>
         </div>
     </div>
 
-    <!-- Vinyl Record Active Audio Simulation Loader -->
+    <!-- Kettle Active Audio Simulation Loader -->
     <div class="progress-container" id="progressContainer">
         <div class="progress-layout">
             <div class="vinyl-wrapper" id="vinylWrapper">
                 <div class="vinyl-disk"></div>
             </div>
             <div class="progress-details">
-                <div class="stage-title" id="progressStage">Ready to spin...</div>
+                <div class="stage-title" id="progressStage">Kettle heating up...</div>
                 <div class="progress-bar-wrapper">
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
@@ -649,9 +648,9 @@
 
     <!-- Cozy Snapshot Arrival Card -->
     <div class="download-zone" id="downloadZone">
-        <h3>🎉 Vinyl Press Ready!</h3>
-        <p>Your webpage snapshots have been securely baked and packaged inside a standard zip cassette container.</p>
-        <button class="download-btn" id="dlBtn">Download Completed ZIP Package</button>
+        <h3>🎉 Infusion Bottled!</h3>
+        <p>Your webpage ingredients have been successfully boiled, strained, and packaged into a neat ZIP thermos.</p>
+        <button class="download-btn" id="dlBtn">Take Your Warm Thermos (ZIP)</button>
     </div>
 </div>
 
@@ -662,10 +661,25 @@
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
 
-    // Auto load verification setup on dynamic execution lifecycle
+    // Setup: Initialize correct theme according to browser context and start captcha
     window.addEventListener('DOMContentLoaded', () => {
+        applySystemThemePreference();
         generateCaptcha();
     });
+
+    // Detect browser/OS light vs dark preferences
+    function applySystemThemePreference() {
+        const toggler = document.getElementById('themeToggler');
+        const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+        
+        if (systemPrefersLight) {
+            document.documentElement.setAttribute('data-theme', 'light');
+            toggler.innerText = '☀️';
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            toggler.innerText = '🌙';
+        }
+    }
 
     // Theme Switch Logic with CSS variable swaps
     function toggleTheme() {
@@ -683,7 +697,7 @@
     }
 
     /* ==========================================================================
-       DYNAMIC THEMED CANVAS CAPTCHA CREATOR ENGINE
+        DYNAMIC THEMED CANVAS CAPTCHA CREATOR ENGINE
        ========================================================================== */
     function generateCaptcha() {
         const canvas = document.getElementById('captchaCanvas');
@@ -716,7 +730,7 @@
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
         }
 
-        // Draw distorted audio cassette "sine frequencies" (Interference Lines)
+        // Draw distorted hot "steam waves" (Interference Lines)
         ctx.strokeStyle = lineWaveColor;
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.4;
@@ -770,19 +784,32 @@
         logBox.scrollTop = logBox.scrollHeight;
     }
 
+    // Visual updates for progress bar
+    function updateProgress(percentage, text) {
+        document.getElementById('progressBar').style.width = percentage + "%";
+        document.getElementById('progressStage').innerText = text;
+    }
+
+    function resetUI() {
+        document.getElementById('actionBtn').disabled = false;
+        document.getElementById('resumeBtn').disabled = false;
+        document.getElementById('vinylWrapper').classList.remove('spinning');
+        if (pollInterval) clearInterval(pollInterval);
+    }
+
     async function startProcess() {
         const customSecretKey = getCustomSecretKey();
         const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
         const userCaptchaValue = document.getElementById('captchaInput').value.trim().toUpperCase();
 
         if (!customSecretKey || rawUrls.length === 0) {
-            alert('Grab your security key and drop some URLs to begin!');
+            alert('Grab your tavern key and drop some recipe URLs to begin!');
             return;
         }
 
         // Validate Captcha
         if (userCaptchaValue !== currentCaptchaCode) {
-            alert('Radio check details mismatch. Please review the dial text!');
+            alert('Steam check details mismatch. Please adjust your dial text!');
             generateCaptcha();
             return;
         }
@@ -793,8 +820,8 @@
         document.getElementById('vinylWrapper').classList.add('spinning');
         document.getElementById('logBox').innerHTML = '';
         
-        updateProgress(5, "Contacting proxy transmitter...");
-        appendLog("Forwarding secret authorization code to background host...");
+        updateProgress(5, "Contacting the stove transmitter...");
+        appendLog("Forwarding tavern credentials to the brewing stove...");
 
         try {
             const backendRes = await fetch(BACKEND_URL, {
@@ -812,24 +839,24 @@
             const data = await backendRes.json();
 
             if (!backendRes.ok) {
-                throw new Error(data.error || "Transmitter rejected the sequence.");
+                throw new Error(data.error || "The stove rejected the fuel mixture.");
             }
 
-            appendLog("Success: Code cleared. Triggered GitHub server dispatch pipeline.");
-            updateProgress(20, "Waiting for virtual worker spin-up...");
+            appendLog("Success: Secret key cleared. Stirring the cauldron on GitHub dispatch pipelines...");
+            updateProgress(20, "Waiting for virtual cauldron water to boil...");
             
             setTimeout(() => trackWorkflowRun(), 10000);
 
         } catch (error) {
-            appendLog(`Signal Interrupted: ${error.message}`, 'error');
+            appendLog(`Boil Interrupted: ${error.message}`, 'error');
             resetUI();
-            generateCaptcha(); // cycle tracking code if failed
+            generateCaptcha(); // cycle captcha if failed
         }
     }
 
     async function trackWorkflowRun() {
         try {
-            appendLog("Tuning signal frequency to locate active job identification marker...");
+            appendLog("Tuning signal frequency to locate active brew recipe badge...");
             
             const response = await fetch(`${BACKEND_URL}?action=track`, {
                 method: 'GET',
@@ -837,12 +864,12 @@
             });
             const data = await response.json();
             
-            if (!response.ok) throw new Error(data.error || "Failed to contact proxy tracking index.");
-            if (!data.runId) throw new Error("No active jobs logged. Try dispatching again.");
+            if (!response.ok) throw new Error(data.error || "Failed to contact tracking index.");
+            if (!data.runId) throw new Error("No active stovetops bubbling. Try stirring again.");
 
             const runId = data.runId;
-            appendLog(`TRACKED -> Unique Run ID: #${runId}`);
-            appendLog(`💡 Tip: Keep this Run ID to "Pick Up & Go" later if you close this window!`);
+            appendLog(`TRACKED -> Unique Brew ID: #${runId}`);
+            appendLog(`💡 Tip: Jot down this Brew ID so you can Pour & Go later if you wander off!`);
 
             startPolling(runId);
 
@@ -857,7 +884,7 @@
         const runId = document.getElementById('runIdInput').value.trim();
 
         if (!customSecretKey || !runId) {
-            alert('Please supply both your Security Key and the Run ID!');
+            alert('Please supply both your Tavern Key and your Brew ID!');
             return;
         }
 
@@ -867,8 +894,8 @@
         document.getElementById('vinylWrapper').classList.add('spinning');
         document.getElementById('logBox').innerHTML = '';
 
-        appendLog(`Manually dialing into channel for Run ID: #${runId}...`);
-        updateProgress(10, "Attempting satellite handshakes...");
+        appendLog(`Dialing into stove channel for Brew ID: #${runId}...`);
+        updateProgress(10, "Attempting satellite kitchen handshakes...");
 
         startPolling(runId);
     }
@@ -887,90 +914,41 @@
             });
             const runInfo = await response.json();
             
-            if (!response.ok) throw new Error(runInfo.error || "Failed to update status parameters.");
+            if (!response.ok) throw new Error(runInfo.error || "Failed to read cooking temperature parameters.");
             
             const status = runInfo.status; 
             const conclusion = runInfo.conclusion; 
 
-            appendLog(`Status update: ${status}...`);
+            appendLog(`Stove status update: ${status}...`);
 
-            if (status === "queued") {
-                updateProgress(35, "Spooling queue tapes... (Queued)");
-            } else if (status === "in_progress") {
-                updateProgress(65, "Baking HTML assets inside engine... (Running)");
-            } else if (status === "completed") {
+            if (status === 'completed') {
                 clearInterval(pollInterval);
-                
-                if (conclusion === "success") {
-                    updateProgress(90, "Finished baking snaps! Accessing safe repository package...");
-                    await locateAndLinkArtifact(runId);
+                if (conclusion === 'success') {
+                    updateProgress(100, "Brew fully steeped!");
+                    appendLog("The kitchen confirms complete success! Bottling your files...");
+                    
+                    // Direct Download trigger
+                    const dlUrl = `https://nightly.link/${REPO}/actions/runs/${runId}/snapshots.zip`;
+                    document.getElementById('dlBtn').onclick = () => window.location.href = dlUrl;
+                    document.getElementById('downloadZone').style.display = 'block';
                 } else {
-                    updateProgress(100, `Halt error state detected: ${conclusion}`, 'error');
-                    appendLog(`Job returned error status. Check GitHub Actions console if problems persist.`, 'error');
-                    resetUI();
+                    updateProgress(100, "Pot boiled over.");
+                    appendLog(`Warning: Pot boiled over during production. Check standard limits.`, 'error');
+                }
+                resetUI();
+            } else {
+                // Approximate cooking phases
+                if (status === 'queued') {
+                    updateProgress(25, "Waiting for kitchen table to clear...");
+                } else if (status === 'in_progress') {
+                    updateProgress(65, "Boiling ingredients together...");
                 }
             }
         } catch (err) {
-            appendLog(`Connection drop: ${err.message}`, 'error');
-        }
-    }
-
-    async function locateAndLinkArtifact(runId) {
-        try {
-            appendLog("Generating signed safe download link wrapper...");
-            
-            const response = await fetch(`${BACKEND_URL}?action=getArtifact&runId=${runId}`, {
-                method: 'GET',
-                headers: { 'X-Custom-Auth': getCustomSecretKey() }
-            });
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.error || "Failed secure verification checks.");
-            if (!data.artifactId) {
-                throw new Error("Job completed but was unable to output dynamic snap file container.");
-            }
-
-            const downloadUrl = `https://github.com/${REPO}/actions/runs/${runId}/artifacts/${data.artifactId}`;
-            
-            updateProgress(100, "Tapes processed successfully.");
-            document.getElementById('vinylWrapper').classList.remove('spinning');
-            
-            const dlBtn = document.getElementById('dlBtn');
-            dlBtn.onclick = () => {
-                window.open(downloadUrl, '_blank');
-                appendLog("Transferring to public package repository storage.");
-            };
-            
-            document.getElementById('downloadZone').style.display = 'block';
-            appendLog(`[Clear] Bundle package mounted. Sound out!`);
-            resetUI();
-
-        } catch (err) {
-            appendLog(`Artifact packaging failure: ${err.message}`, 'error');
+            appendLog(`Stove reading error: ${err.message}`, 'error');
             resetUI();
         }
-    }
-
-    function updateProgress(percentage, text, mode = 'normal') {
-        const bar = document.getElementById('progressBar');
-        const txt = document.getElementById('progressStage');
-        bar.style.width = `${percentage}%`;
-        txt.innerText = `${percentage}% — ${text}`;
-        if(mode === 'error') {
-            bar.style.backgroundColor = 'var(--error)';
-            document.getElementById('vinylWrapper').classList.remove('spinning');
-        } else {
-            bar.style.backgroundColor = 'var(--accent)';
-        }
-    }
-
-    function resetUI() {
-        if(pollInterval) clearInterval(pollInterval);
-        document.getElementById('vinylWrapper').classList.remove('spinning');
-        document.getElementById('actionBtn').disabled = false;
-        document.getElementById('resumeBtn').disabled = false;
     }
 </script>
-
 </body>
 </html>
