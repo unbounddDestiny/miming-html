@@ -57,25 +57,34 @@
         }
 
         /* ==========================================================================
-           3. BASE STRUCTURE
+           3. BASE STRUCTURE (FIXED SCROLL & WHITE OVERSCROLL PREVENTION)
            ========================================================================== */
         * {
             box-sizing: border-box;
             transition: background 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
         }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overscroll-behavior: none; /* Prevents bounce scroll revealing white background edges */
+            background: var(--bg-gradient);
+            overflow-x: hidden;
+        }
+
         body {
             font-family: 'Quicksand', sans-serif;
-            background: var(--bg-gradient);
             color: var(--text-main);
-            margin: 0;
             min-height: 100vh;
-            padding: 40px 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow-x: hidden;
+            /* Allow scrolling within container boundaries safely */
+            overflow-y: auto; 
+            padding: 40px 20px;
         }
 
         /* Ambient Vinyl Grooves in background (Hardware-accelerated, zero-lag) */
@@ -118,6 +127,7 @@
             backdrop-filter: blur(8px);
             position: relative;
             z-index: 10;
+            margin: auto; /* Keeps centered elegantly */
         }
 
         /* ==========================================================================
@@ -283,6 +293,67 @@
 
         .cozy-guide strong {
             color: var(--text-main);
+        }
+
+        /* ==========================================================================
+           6B. BRAND NEW LOFI INTERACTIVE DESIGNED CAPTCHA UI
+           ========================================================================== */
+        .lofi-captcha-container {
+            background: var(--input-bg);
+            border: var(--card-border);
+            padding: 18px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 5px;
+        }
+
+        .captcha-header-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .captcha-visual-pane {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        #captchaCanvas {
+            border-radius: 8px;
+            background: #15131f; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Dynamic matching variables during light theme shift */
+        [data-theme="light"] #captchaCanvas {
+            background: #e6e2d8 !important;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-captcha-refresh {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+        }
+
+        .captcha-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .captcha-input-row input {
+            font-family: 'Fira Code', monospace;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 600;
+            text-align: center;
         }
 
         /* ==========================================================================
@@ -476,7 +547,7 @@
         <div class="theme-control">
             <!-- Theme Changer -->
             <button class="btn-round" id="themeToggler" onclick="toggleTheme()" title="Switch Light/Dark Palette">
-                🌙
+                M1
             </button>
         </div>
     </div>
@@ -518,6 +589,22 @@
                     <option value="true">Headless Chrome (For Interactive Web Apps)</option>
                     <option value="false">Static Fetch (Lightweight, blazing fast raw HTML)</option>
                 </select>
+            </div>
+
+            <!-- Integrated Custom Audio Wave Captcha Component -->
+            <div class="form-group">
+                <label>📻 Human Radio Check</label>
+                <div class="lofi-captcha-container">
+                    <div class="captcha-header-wrapper">
+                        <div class="captcha-visual-pane">
+                            <canvas id="captchaCanvas" width="160" height="50"></canvas>
+                            <button type="button" class="btn-round btn-captcha-refresh" onclick="generateCaptcha()" title="Change Radio Station (Refresh)">🔄</button>
+                        </div>
+                    </div>
+                    <div class="captcha-input-row">
+                        <input type="text" id="captchaInput" autocomplete="off" placeholder="Tune text details...">
+                    </div>
+                </div>
             </div>
             
             <button class="action-button" id="actionBtn" onclick="startProcess()">
@@ -570,9 +657,15 @@
 
 <script>
     let pollInterval = null;
+    let currentCaptchaCode = "";
 
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
+
+    // Auto load verification setup on dynamic execution lifecycle
+    window.addEventListener('DOMContentLoaded', () => {
+        generateCaptcha();
+    });
 
     // Theme Switch Logic with CSS variable swaps
     function toggleTheme() {
@@ -584,6 +677,74 @@
         } else {
             document.documentElement.setAttribute('data-theme', 'light');
             toggler.innerText = '☀️';
+        }
+        // Regenerate to dynamically inherit colors perfectly
+        generateCaptcha();
+    }
+
+    /* ==========================================================================
+       DYNAMIC THEMED CANVAS CAPTCHA CREATOR ENGINE
+       ========================================================================== */
+    function generateCaptcha() {
+        const canvas = document.getElementById('captchaCanvas');
+        const ctx = canvas.getContext('2d');
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Readable characters
+        let code = '';
+        
+        for (let i = 0; i < 5; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        currentCaptchaCode = code;
+
+        // Reset input UI element
+        document.getElementById('captchaInput').value = "";
+
+        // Read current computed variables to color match UI
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const textColor = isLight ? '#4a4135' : '#e2def0';
+        const lineWaveColor = isLight ? '#8ea890' : '#e07a70';
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Render Retro Background grid lines
+        ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 10) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+        for (let i = 0; i < canvas.height; i += 10) {
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
+
+        // Draw distorted audio cassette "sine frequencies" (Interference Lines)
+        ctx.strokeStyle = lineWaveColor;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        for (let x = 0; x < canvas.width; x++) {
+            let y = (canvas.height / 2) + Math.sin(x * 0.05) * 8 + Math.cos(x * 0.1) * 4;
+            ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        ctx.globalAlpha = 1.0;
+        // Text configuration
+        ctx.font = "bold 22px 'Fira Code', monospace";
+        ctx.textBaseline = "middle";
+
+        // Render each code token with random distortion offsets
+        for (let i = 0; i < code.length; i++) {
+            ctx.save();
+            let xOffset = 18 + (i * 26) + (Math.random() * 6 - 3);
+            let yOffset = (canvas.height / 2) + (Math.random() * 8 - 4);
+            let rotation = (Math.random() * 0.3) - 0.15;
+
+            ctx.translate(xOffset, yOffset);
+            ctx.rotate(rotation);
+            ctx.fillStyle = textColor;
+            ctx.fillText(code[i], 0, 0);
+            ctx.restore();
         }
     }
 
@@ -612,9 +773,17 @@
     async function startProcess() {
         const customSecretKey = getCustomSecretKey();
         const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+        const userCaptchaValue = document.getElementById('captchaInput').value.trim().toUpperCase();
 
         if (!customSecretKey || rawUrls.length === 0) {
             alert('Grab your security key and drop some URLs to begin!');
+            return;
+        }
+
+        // Validate Captcha
+        if (userCaptchaValue !== currentCaptchaCode) {
+            alert('Radio check details mismatch. Please review the dial text!');
+            generateCaptcha();
             return;
         }
 
@@ -654,6 +823,7 @@
         } catch (error) {
             appendLog(`Signal Interrupted: ${error.message}`, 'error');
             resetUI();
+            generateCaptcha(); // cycle tracking code if failed
         }
     }
 
