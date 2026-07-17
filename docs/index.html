@@ -1080,7 +1080,7 @@
                     appendLog("The kitchen confirms complete success! Bottling your files...");
                     
                     // Direct Download trigger setup
-                    const dlUrl = `https://nightly.link/${REPO}/actions/runs/${runId}/snapshots.zip`;
+                    const dlUrl = `https://github.com/${REPO}/actions/runs/${runId}`;
                     document.getElementById('dlBtn').onclick = () => window.location.href = dlUrl;
                     document.getElementById('downloadZone').style.display = 'block';
                 } else {
