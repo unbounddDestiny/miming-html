@@ -38,20 +38,29 @@
 
         h1 { margin-top: 0; font-size: 24px; border-bottom: 2px solid #334155; padding-bottom: 10px; }
         
+        /* Layout Fix: Standardizing vertical element rhythm so fields never overlap */
+        .form-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
         .config-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
             background: #1e293b;
             border: 1px solid #334155;
             padding: 15px;
             border-radius: 6px;
         }
 
-        .config-group { display: flex; flex-direction: column; margin-bottom: 20px; }
+        .config-group { 
+            display: flex; 
+            flex-direction: column; 
+            width: 100%;
+        }
 
         label { font-weight: bold; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); }
+        
         input, select, textarea {
             background: #0f172a;
             border: 1px solid #475569;
@@ -64,18 +73,12 @@
         }
         input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); }
 
-        /* Enhanced URL Input Textarea Area styling */
+        /* Expanded and completely isolated textarea framework */
         textarea { 
             height: 240px; 
             font-family: 'Fira Code', 'Courier New', monospace; 
             line-height: 1.6;
             resize: vertical; 
-        }
-
-        .options-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 25px;
         }
 
         button {
@@ -134,22 +137,24 @@
 <div class="container">
     <h1>Webpage Archiver Remote Console</h1>
     
-    <!-- Configuration Credentials -->
-    <div class="config-grid">
-        <div class="config-group" style="margin-bottom: 0;">
-            <label for="passkeyInput">Custom Secret Key:</label>
-            <input type="password" id="passkeyInput" placeholder="Enter your custom secret key to unlock runner...">
+    <!-- Unified layout system prevents structural blocking -->
+    <div class="form-layout">
+        <!-- Configuration Credentials -->
+        <div class="config-grid">
+            <div class="config-group">
+                <label for="passkeyInput">Custom Secret Key:</label>
+                <input type="password" id="passkeyInput" placeholder="Enter your custom secret key to unlock runner...">
+            </div>
         </div>
-    </div>
 
-    <!-- Execution Settings -->
-    <div class="config-group">
-        <label for="urlInput">Target URLs (One per line):</label>
-        <textarea id="urlInput" placeholder="https://example.com&#10;https://google.com&#10;https://github.com"></textarea>
-    </div>
+        <!-- Execution Settings (Now safely separated) -->
+        <div class="config-group">
+            <label for="urlInput">Target URLs (One per line):</label>
+            <textarea id="urlInput" placeholder="https://example.com&#10;https://google.com&#10;https://github.com"></textarea>
+        </div>
 
-    <div class="options-row">
-        <div class="config-group" style="flex: 1; margin-bottom: 0;">
+        <!-- Toggle Parameters -->
+        <div class="config-group">
             <label for="renderJs">Render JavaScript:</label>
             <select id="renderJs">
                 <option value="true">True (Headless Chrome)</option>
