@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webpage Archiver Console</title>
+    <title>Webpage Archiver Remote Console</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -13,6 +13,8 @@
             --text: #f8fafc;
             --text-muted: #94a3b8;
             --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
         }
 
         body {
@@ -36,40 +38,44 @@
 
         h1 { margin-top: 0; font-size: 24px; border-bottom: 2px solid #334155; padding-bottom: 10px; }
         
-        .instructions {
-            background: #334155;
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #1e293b;
+            border: 1px solid #334155;
             padding: 15px;
             border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            line-height: 1.5;
         }
 
-        .instructions ul { margin: 5px 0 0 20px; padding: 0; }
+        .config-group { display: flex; flex-direction: column; }
+        .config-group.full-width { grid-column: span 2; }
 
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: var(--text-muted); }
-        
-        textarea {
-            width: 100%;
-            height: 180px;
+        label { font-weight: bold; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
+        input, select, textarea {
             background: #0f172a;
             border: 1px solid #475569;
             border-radius: 6px;
             color: #fff;
-            padding: 12px;
-            box-sizing: border-box;
-            font-family: monospace;
-            resize: vertical;
+            padding: 10px;
+            font-size: 14px;
+        }
+        input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); }
+
+        textarea { height: 120px; font-family: monospace; resize: vertical; }
+
+        .options-row {
+            display: flex;
+            gap: 20px;
             margin-bottom: 20px;
         }
-
-        textarea:focus { outline: 2px solid var(--accent); }
 
         button {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 14px 24px;
             font-size: 16px;
             font-weight: bold;
             border-radius: 6px;
@@ -77,85 +83,92 @@
             transition: background 0.2s;
             width: 100%;
         }
-
         button:hover { background: var(--accent-hover); }
         button:disabled { background: #475569; cursor: not-allowed; }
 
-        .progress-container {
-            margin-top: 25px;
-            display: none;
-        }
-
+        .progress-container { margin-top: 25px; display: none; }
         .progress-bar-wrapper {
             background: #334155;
             border-radius: 100px;
             overflow: hidden;
-            height: 20px;
+            height: 22px;
             width: 100%;
             position: relative;
         }
-
         .progress-bar {
             background: var(--accent);
             height: 100%;
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.4s ease;
         }
-
-        .progress-text {
-            text-align: center;
-            font-weight: bold;
-            margin-top: 8px;
-            font-size: 14px;
-        }
-
-        .download-zone {
-            margin-top: 25px;
-            text-align: center;
-            display: none;
-        }
-
-        .download-btn {
-            background: var(--success);
-        }
-        .download-btn:hover { background: #059669; }
+        .progress-text { text-align: center; font-weight: bold; margin-top: 8px; font-size: 14px; }
 
         .log-box {
             background: #000;
             font-family: monospace;
             padding: 15px;
             border-radius: 6px;
-            height: 150px;
+            height: 180px;
             overflow-y: auto;
             margin-top: 20px;
             font-size: 12px;
             color: #a7f3d0;
             display: none;
+            border: 1px solid #334155;
         }
+
+        .download-zone { margin-top: 25px; text-align: center; display: none; }
+        .download-btn { background: var(--success); text-decoration: none; display: inline-block; width: 100%; box-sizing: border-box; text-align: center; line-height: 48px; font-weight: bold; color: white; border-radius: 6px; cursor: pointer; }
+        .download-btn:hover { background: #059669; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Webpage Archiver Helper</h1>
+    <h1>Webpage Archiver Remote Console</h1>
     
-    <div class="instructions">
-        <strong>Instructions of Usage:</strong>
-        <ul>
-            <li>Paste your list of targeted URLs directly into the input space below (One URL link per line).</li>
-            <li>Empty breaks or whitespaces will automatically clean themselves up.</li>
-            <li>Press "Process URL Batch" to generate the specific formatted download configuration files.</li>
-            <li>When processing finishes, click the download button to grab your files named cleanly under the <code>url_#.html</code> indexing rule.</li>
-        </ul>
+    <!-- GitHub Platform API Credentials -->
+    <div class="config-grid">
+        <div class="config-group">
+            <label for="ghRepo">GitHub Repository (owner/repo):</label>
+            <input type="text" id="ghRepo" placeholder="unbounddDestiny/miming-html">
+        </div>
+        <div class="config-group">
+            <label for="ghWorkflow">Workflow Filename:</label>
+            <input type="text" id="ghWorkflow" placeholder="save-offline.yml">
+        </div>
+        <div class="config-group full-width">
+            <label for="ghToken">GitHub Fine-Grained Personal Access Token (PAT):</label>
+            <input type="password" id="ghToken" placeholder="github_pat_...">
+        </div>
     </div>
 
-    <label for="urlInput">Paste URL List Here:</label>
-    <textarea id="urlInput" placeholder="https://example.com&#10;https://google.com&#10;https://github.com"></textarea>
+    <!-- Execution Settings -->
+    <label for="urlInput">Target URLs (One per line):</label>
+    <textarea id="urlInput" placeholder="https://example.com&#10;https://google.com"></textarea>
 
-    <button id="actionBtn" onclick="processUrls()">Process URL Batch</button>
+    <div class="options-row">
+        <div class="config-group" style="flex: 1;">
+            <label for="renderJs">Render JavaScript:</label>
+            <select id="renderJs">
+                <option value="true">True (Headless Chrome)</option>
+                <option value="false">False (Fast Raw Fetch)</option>
+            </select>
+        </div>
+        <div class="config-group" style="flex: 1;">
+            <label for="commitResults">Commit to Repository:</label>
+            <select id="commitResults">
+                <option value="false" selected>False (Artifacts Only)</option>
+                <option value="true">True</option>
+            </select>
+        </div>
+    </div>
 
+    <button id="actionBtn" onclick="dispatchWorkflow()">Trigger Remote GitHub Archive</button>
+
+    <!-- Execution Status View Tracking -->
     <div class="progress-container" id="progressContainer">
-        <label>Archiving Status Progress:</label>
+        <label id="progressStage">GitHub Pipeline Status:</label>
         <div class="progress-bar-wrapper">
             <div class="progress-bar" id="progressBar"></div>
         </div>
@@ -165,79 +178,210 @@
     <div class="log-box" id="logBox"></div>
 
     <div class="download-zone" id="downloadZone">
-        <h3>Processing Completed!</h3>
-        <button class="download-btn" id="dlBtn" onclick="downloadAll()">Download HTML Package Bundle</button>
+        <h3>GitHub Runner Pipeline Successful!</h3>
+        <button class="download-btn" id="dlBtn">Download Completed ZIP Artifact</button>
     </div>
 </div>
 
 <script>
-    let dynamicFiles = [];
+    let pollInterval = null;
 
-    function appendLog(text) {
+    // Secure local caching of non-sensitive layout preferences
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('gh_repo')) document.getElementById('ghRepo').value = localStorage.getItem('gh_repo');
+        if (localStorage.getItem('gh_workflow')) document.getElementById('ghWorkflow').value = localStorage.getItem('gh_workflow');
+    });
+
+    function appendLog(text, type = 'info') {
         const logBox = document.getElementById('logBox');
         logBox.style.display = 'block';
-        logBox.innerHTML += text + '<br>';
+        let color = '#a7f3d0'; 
+        if (type === 'error') color = '#ef4444';
+        if (type === 'warn') color = '#fbbf24';
+        logBox.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}</span><br>`;
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    async function processUrls() {
-        const input = document.getElementById('urlInput').value;
-        const urls = input.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-        
-        if(urls.length === 0) {
-            alert('Please enter at least one valid URL.');
+    async function dispatchWorkflow() {
+        const repo = document.getElementById('ghRepo').value.trim();
+        const workflowFile = document.getElementById('ghWorkflow').value.trim();
+        const token = document.getElementById('ghToken').value.trim();
+        const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+
+        if (!repo || !workflowFile || !token || rawUrls.length === 0) {
+            alert('Missing parameters. Please provide your fine-grained PAT and all required inputs.');
             return;
         }
 
-        // Reset UI View Elements
-        document.getElementById('actionBtn').disabled = true;
-        document.getElementById('downloadZone').style.display = 'none';
-        const progressContainer = document.getElementById('progressContainer');
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
-        const logBox = document.getElementById('logBox');
-        
-        progressContainer.style.display = 'block';
-        logBox.innerHTML = '';
-        dynamicFiles = [];
+        // Save repository context locally to help user experience on page reload
+        localStorage.setItem('gh_repo', repo);
+        localStorage.setItem('gh_workflow', workflowFile);
 
-        for(let i = 0; i < urls.length; i++) {
-            const currentUrl = urls[i];
-            appendLog(`[Attempt 1/3] Initializing worker call for URL #${i}: ${currentUrl}`);
-            
-            // Simulating a fast download loop build sequence 
-            await new Promise(r => setTimeout(r, 600)); 
-            
-            appendLog(`[Success] Saved resource payload file structural mapping -> url_${i}.html`);
-            
-            // Generate mock container file with target data
-            dynamicFiles.push({
-                name: `url_${i}.html`,
-                content: `<!DOCTYPE html><html><head><title>Archive Link #${i}</title></head><body style="font-family:sans-serif;padding:40px;"><h1>Archived Copy of ${currentUrl}</h1><p>Snapshot processed under system configuration variable matching matrix identifier entry index #${i}.</p></body></html>`
-            });
-
-            // Calculate precise updates
-            let percent = Math.round(((i + 1) / urls.length) * 100);
-            progressBar.style.width = percent + '%';
-            progressText.innerText = `${percent}% Completed`;
+        let inputUrl = "";
+        if (rawUrls.length === 1) {
+            inputUrl = rawUrls[0];
         }
 
-        document.getElementById('actionBtn').disabled = false;
-        document.getElementById('downloadZone').style.display = 'block';
+        document.getElementById('actionBtn').disabled = true;
+        document.getElementById('downloadZone').style.display = 'none';
+        document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('logBox').innerHTML = '';
+        
+        updateProgress(5, "Contacting GitHub Web API...");
+
+        const headers = {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        };
+
+        try {
+            appendLog(`Dispatching workflow event '${workflowFile}' inside '${repo}'...`);
+            const dispatchRes = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflowFile}/dispatches`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    ref: "main",
+                    inputs: {
+                        url: inputUrl,
+                        urls_file: "", 
+                        render_js: document.getElementById('renderJs').value,
+                        commit_results: document.getElementById('commitResults').value
+                    }
+                })
+            });
+
+            if (!dispatchRes.ok) {
+                const errText = await dispatchRes.text();
+                throw new Error(`Dispatch payload rejected: ${dispatchRes.status} - ${errText}`);
+            }
+
+            appendLog("Workflow successfully dispatched. Waiting 10 seconds for runner initialization...");
+            updateProgress(15, "Waiting for GitHub server provisioning...");
+            
+            setTimeout(() => trackWorkflowRun(repo, headers), 10000);
+
+        } catch (error) {
+            appendLog(error.message, 'error');
+            resetUI();
+        }
     }
 
-    function downloadAll() {
-        if (dynamicFiles.length === 0) return;
-        
-        dynamicFiles.forEach(file => {
-            const blob = new Blob([file.content], { type: 'text/html' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = file.name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
+    async function trackWorkflowRun(repo, headers) {
+        try {
+            appendLog("Scanning action run listings for the active worker ID...");
+            const response = await fetch(`https://api.github.com/repos/${repo}/actions/runs?per_page=1`, { headers });
+            const data = await response.json();
+            
+            if (!data.workflow_runs || data.workflow_runs.length === 0) {
+                throw new Error("No visible logs found on repository pipeline record.");
+            }
+
+            const currentRun = data.workflow_runs[0];
+            const runId = currentRun.id;
+            appendLog(`Identified Active Tracker Target: Run ID #${runId}`);
+
+            pollInterval = setInterval(() => checkStatus(repo, runId, headers), 7000);
+
+        } catch (err) {
+            appendLog(`Polling locator fault: ${err.message}`, 'error');
+            resetUI();
+        }
+    }
+
+    async function checkStatus(repo, runId, headers) {
+        try {
+            const response = await fetch(`https://api.github.com/repos/${repo}/actions/runs/${runId}`, { headers });
+            const runInfo = await response.json();
+            const status = runInfo.status; 
+            const conclusion = runInfo.conclusion; 
+
+            appendLog(`Worker status read-update: ${status}...`);
+
+            if (status === "queued") {
+                updateProgress(25, "Job in global GitHub Queue...");
+            } else if (status === "in_progress") {
+                updateProgress(60, "Archiver processing targeted assets... (Running)");
+            } else if (status === "completed") {
+                clearInterval(pollInterval);
+                
+                if (conclusion === "success") {
+                    updateProgress(90, "Processing complete! Accessing download artifact assets...");
+                    await locateAndLinkArtifact(repo, runId, headers);
+                } else {
+                    updateProgress(100, `Execution halted with state error: ${conclusion}`, 'error');
+                    appendLog(`Pipeline error return code match detected. Check repo action panel logs.`, 'error');
+                    resetUI();
+                }
+            }
+        } catch (err) {
+            appendLog(`Error polling check status updates: ${err.message}`, 'error');
+        }
+    }
+
+    async function locateAndLinkArtifact(repo, runId, headers) {
+        try {
+            appendLog("Searching target download links for 'all-snapshots' packaging zip bundle...");
+            const response = await fetch(`https://api.github.com/repos/${repo}/actions/runs/${runId}/artifacts`, { headers });
+            const data = await response.json();
+
+            const targetArtifact = data.artifacts.find(art => art.name === "all-snapshots");
+
+            if (!targetArtifact) {
+                throw new Error("Completed run without locating 'all-snapshots' file container output target.");
+            }
+
+            // Fixed authenticated REST endpoint for raw binary direct file streams
+            const downloadUrl = `https://api.github.com/repos/${repo}/actions/artifacts/${targetArtifact.id}/zip`;
+            
+            updateProgress(100, "Success! Package Ready.");
+            document.getElementById('progressBar').style.backgroundColor = 'var(--success)';
+            
+            const dlBtn = document.getElementById('dlBtn');
+            
+            // Re-armed click handler intercepting the network thread to parse data using the PAT 
+            dlBtn.onclick = async () => {
+                appendLog("Streaming binary ZIP archive from GitHub API...");
+                try {
+                    const fileRes = await fetch(downloadUrl, { headers });
+                    if (!fileRes.ok) throw new Error(`Download failed with status code ${fileRes.status}`);
+                    
+                    const blob = await fileRes.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    
+                    const tempLink = document.createElement('a');
+                    tempLink.href = blobUrl;
+                    tempLink.download = `snapshot-${targetArtifact.id}.zip`;
+                    document.body.appendChild(tempLink);
+                    tempLink.click();
+                    document.body.removeChild(tempLink);
+                    appendLog("Archive package downloaded successfully!");
+                } catch(dlErr) {
+                    appendLog(`Stream processing failure: ${dlErr.message}`, 'error');
+                }
+            };
+            
+            document.getElementById('downloadZone').style.display = 'block';
+            appendLog(`[Finished] Package located! Interactive binary download link armed.`);
+            document.getElementById('actionBtn').disabled = false;
+
+        } catch (err) {
+            appendLog(`Artifact mapping resolution failed: ${err.message}`, 'error');
+            resetUI();
+        }
+    }
+
+    function updateProgress(percentage, text, mode = 'normal') {
+        const bar = document.getElementById('progressBar');
+        const txt = document.getElementById('progressText');
+        bar.style.width = `${percentage}%`;
+        txt.innerText = `${percentage}% - ${text}`;
+        if(mode === 'error') bar.style.backgroundColor = 'var(--error)';
+    }
+
+    function resetUI() {
+        clearInterval(pollInterval);
+        document.getElementById('actionBtn').disabled = false;
     }
 </script>
 
