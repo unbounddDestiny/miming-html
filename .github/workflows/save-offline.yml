@@ -47,7 +47,7 @@ jobs:
           URL: ${{ inputs.url }}
           URLS_FILE: ${{ inputs.urls_file }}
         run: |
-          : > urls_to_process.txt
+          :> urls_to_process.txt
 
           if [ -n "$URL" ]; then
             echo "$URL" >> urls_to_process.txt
@@ -70,12 +70,15 @@ jobs:
   archive:
     needs: prep-urls
     runs-on: ubuntu-latest
-    # If there are no URLs, skip the archive process gracefully
     if: ${{ needs.prep-urls.outputs.matrix != '[]' && needs.prep-urls.outputs.matrix != '' }}
     strategy:
       matrix:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
-      fail-fast: false # Keep archiving remaining URLs even if one fails
+      fail-fast: false
+    
+    # Visual name in Github Actions UI
+    name: url #${{ strategy.job-index }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -99,43 +102,64 @@ jobs:
           fi
           monolith --version
 
-      - name: Archive URL
+      - name: Archive Action
         env:
           URL: ${{ matrix.url }}
           RENDER_JS: ${{ inputs.render_js }}
+          JOB_INDEX: ${{ strategy.job-index }}
           UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
         run: |
           mkdir -p snapshots
-          echo "== Archiving: $URL =="
+          echo "== Archiving target URL =="
 
-          safe_name=$(printf '%s' "$URL" | sed -E 's~^https?://~~; s~[^a-zA-Z0-9._-]+~_~g' | cut -c1-150)
-          timestamp=$(date -u +"%Y%m%d-%H%M%S")
-          output_file="snapshots/${safe_name}_${timestamp}.html"
+          # Clean filename containing only the number index, no timestamps
+          output_file="snapshots/url_${JOB_INDEX}.html"
 
-          if [ "$RENDER_JS" = "true" ]; then
-            echo "Pre-rendering with headless Chrome..."
-            google-chrome \
-              --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
-              --hide-scrollbars --window-size=1920,1080 \
-              --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
-              --user-agent="$UA" \
-              --dump-dom "$URL" \
-              | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" \
-              || echo "::warning::Failed to archive $URL"
-          else
-            monolith "$URL" -I -e -u "$UA" -o "$output_file" \
-              || echo "::warning::Failed to archive $URL"
+          MAX_ATTEMPTS=3
+          attempt=1
+          success=false
+
+          while [ $attempt -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $attempt of $MAX_ATTEMPTS..."
+            
+            if [ "$RENDER_JS" = "true" ]; then
+              echo "Pre-rendering with headless Chrome..."
+              if google-chrome \
+                --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
+                --hide-scrollbars --window-size=1920,1080 \
+                --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
+                --user-agent="$UA" \
+                --dump-dom "$URL" \
+                | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file"; then
+                  success=true
+                  break
+              fi
+            else
+              if monolith "$URL" -I -e -u "$UA" -o "$output_file"; then
+                  success=true
+                  break
+              fi
+            fi
+
+            echo "Attempt $attempt failed."
+            attempt=$((attempt + 1))
+            if [ $attempt -le $MAX_ATTEMPTS ]; then
+              echo "Waiting 5 seconds before reloading complete website..."
+              sleep 5
+            fi
+          done
+
+          if [ "$success" = "false" ]; then
+            echo "::warning::Failed to archive webpage after $MAX_ATTEMPTS complete attempts."
           fi
 
           if [ -s "$output_file" ]; then
             echo "Saved $(du -h "$output_file" | cut -f1) -> $output_file"
           fi
 
-      # Upload snapshot as artifact so they can be merged and committed in the next step
       - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
         with:
-          # Use a unique artifact name for each worker to prevent overrides
           name: snapshot-${{ strategy.job-index }}
           path: snapshots/
           if-no-files-found: warn
@@ -150,7 +174,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Downloads all worker artifacts to the 'snapshots' directory automatically
       - name: Download all snapshots
         uses: actions/download-artifact@v4
         with:
@@ -163,7 +186,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Force add if anything got tucked away inside subdirectories
           git add snapshots/
           
           if ! git diff --cached --quiet; then
