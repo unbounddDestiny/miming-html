@@ -1,0 +1,66 @@
+name: Save Website Offline (MHTML)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'The URL of the website to save'
+        required: true
+        default: 'https://example.com'
+      filename:
+        description: 'Name of the output file (without extension)'
+        required: true
+        default: 'offline-page'
+
+jobs:
+  capture-mhtml:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install Playwright and Dependencies
+      run: |
+        npm install playwright
+        npx playwright install chromium --with-deps
+
+    - name: Run Playwright Script to Capture MHTML
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          
+          const targetUrl = '${{ github.event.inputs.url }}';
+          const outputName = '${{ github.event.inputs.filename }}.mhtml';
+          
+          console.log(`Launching browser to visit: ${targetUrl}`);
+          const browser = await chromium.launch();
+          const context = await browser.newContext();
+          const page = await context.newPage();
+          
+          // Navigate and wait until the network goes quiet (images & fonts loaded)
+          await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 60000 });
+          
+          // Request Chrome DevTools Protocol snapshot
+          const client = await context.newCDPSession(page);
+          const { data } = await client.send('Page.captureSnapshot', { format: 'mhtml' });
+          
+          // Write snapshot to the runner workspace
+          fs.writeFileSync(outputName, data);
+          console.log(`Successfully saved single-file MHTML to: ${outputName}`);
+          
+          await browser.close();
+
+    - name: Upload MHTML Document as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.event.inputs.filename }}
+        path: ${{ github.event.inputs.filename }}.mhtml
+        retention-days: 7
