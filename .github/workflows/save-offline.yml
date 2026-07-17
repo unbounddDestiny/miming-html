@@ -27,17 +27,17 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        npm install playwright single-file-cli
+        npm install playwright
         npx playwright install chromium --with-deps
 
-    - name: Scroll Page and Trigger Lazy-Load
+    - name: Scroll Page and Capture Base64 HTML
       run: |
-        cat << 'EOF' > scroll.js
+        cat << 'EOF' > capture.js
         const { chromium } = require('playwright');
         const fs = require('fs');
 
         (async () => {
-          console.log("Launching browser...");
+          console.log("Launching headless browser...");
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
@@ -47,7 +47,7 @@ jobs:
           console.log("Navigating to target URL...");
           await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 60000 });
 
-          console.log("Scrolling down to un-lazy-load images...");
+          console.log("Scrolling down to un-lazy-load manga/comic images...");
           await page.evaluate(async () => {
             await new Promise((resolve) => {
               let totalHeight = 0;
@@ -57,34 +57,51 @@ jobs:
                 window.scrollBy(0, distance);
                 totalHeight += distance;
 
-                if (totalHeight >= scrollHeight || totalHeight > 50000) { // Safety max height cap
+                if (totalHeight >= scrollHeight || totalHeight > 60000) { 
                   clearInterval(timer);
                   resolve();
                 }
-              }, 100);
+              }, 120);
             });
           });
 
-          // Rest to ensure images fully load over the network
+          console.log("Waiting for network connections to idle...");
           await page.waitForLoadState('networkidle');
 
-          // Dump fully unpacked DOM
-          const html = await page.content();
-          fs.writeFileSync('expanded_state.html', html);
-          console.log("DOM state successfully saved to disk.");
+          console.log("Converting all images on the page into inline Base64 strings...");
+          await page.evaluate(async () => {
+            const toBase64 = url => fetch(url)
+              .then(response => response.blob())
+              .then(blob => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              })).catch(() => null);
+
+            const images = document.querySelectorAll('img');
+            for (const img of images) {
+              if (img.src && !img.src.startsWith('data:')) {
+                const base64Str = await toBase64(img.src);
+                if (base64Str) {
+                  img.src = base64Str;
+                  if (img.hasAttribute('srcset')) img.removeAttribute('srcset');
+                  if (img.hasAttribute('data-src')) img.removeAttribute('data-src');
+                }
+              }
+            }
+          });
+
+          console.log("Dumping self-contained HTML layout...");
+          const completedHtml = await page.content();
+          fs.writeFileSync(process.env.OUTPUT_FILENAME, completedHtml);
+          console.log("Successfully compiled standalone HTML document.");
 
           await browser.close();
         })();
         EOF
         
-        # Execute script via Node, passing the input URL as an env variable
-        TARGET_URL="${{ github.event.inputs.url }}" node scroll.js
-
-    - name: Compile to Base64 SingleFile HTML
-      run: |
-        # Use SingleFile to inline all images as base64 strings directly into a universal format
-        npx single-file --base-url="${{ github.event.inputs.url }}" expanded_state.html "${{ github.event.inputs.filename }}.html"
-        echo "Compilation complete!"
+        TARGET_URL="${{ github.event.inputs.url }}" OUTPUT_FILENAME="${{ github.event.inputs.filename }}.html" node capture.js
 
     - name: Upload HTML Document as Artifact
       uses: actions/upload-artifact@v4
