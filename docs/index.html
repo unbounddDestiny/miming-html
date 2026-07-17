@@ -28,9 +28,12 @@
             --coffee-liquid: #5c3d2e;
             --btn-transform: translateY(-2px);
             --btn-radius: 12px;
-            --receipt-bg: #fdf8f0;
-            --receipt-text: #2b221a;
-            --receipt-accent: #936e4f;
+            --receipt-bg: #2a2420;
+            --receipt-text: #f3ede8;
+            --receipt-accent: #d48c5e;
+            --receipt-line: #3d322b;
+            --receipt-meta-text: #a8998f;
+            --receipt-total-border: #5c4a3d;
         }
 
         [data-theme="light"] {
@@ -52,9 +55,12 @@
             --coffee-liquid: #865439;
             --btn-transform: scale(0.98);
             --btn-radius: 4px;
-            --receipt-bg: #ffffff;
+            --receipt-bg: #fdf8f0;
             --receipt-text: #2b221a;
             --receipt-accent: #936e4f;
+            --receipt-line: #e8e0d5;
+            --receipt-meta-text: #8a7e72;
+            --receipt-total-border: #2b221a;
         }
 
         * {
@@ -499,7 +505,6 @@
             border-radius: 0 0 24px 24px;
             flex-shrink: 0;
             border: 3px solid var(--text-muted);
-            overflow: visible;
             animation: mug-appear 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
 
@@ -517,6 +522,15 @@
             border-radius: 0 12px 12px 0;
             background: transparent;
             left: auto;
+        }
+
+        /* Inner mask clips liquid without hiding handle/steam */
+        .coffee-cup-inner {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 0 0 21px 21px;
+            overflow: hidden;
+            pointer-events: none;
         }
 
         .coffee-liquid-fill {
@@ -746,7 +760,7 @@
         }
 
         .btn-clipboard-copy {
-            background: var(--card-border);
+            background: transparent;
             color: var(--text-main);
             border: none;
             padding: 0 16px;
@@ -822,7 +836,7 @@
         .receipt-header {
             text-align: center;
             padding: 16px 20px 10px;
-            border-bottom: 1px dashed #c5b9a8;
+            border-bottom: 1px dashed var(--receipt-line);
         }
 
         .receipt-cafe-name {
@@ -836,7 +850,7 @@
 
         .receipt-meta {
             font-size: 10px;
-            color: #8a7e72;
+            color: var(--receipt-meta-text);
             margin: 0;
         }
 
@@ -855,7 +869,7 @@
             letter-spacing: 1px;
             color: var(--receipt-accent);
             margin-bottom: 6px;
-            border-bottom: 1px solid #e8e0d5;
+            border-bottom: 1px solid var(--receipt-line);
             padding-bottom: 2px;
         }
 
@@ -887,7 +901,7 @@
             justify-content: space-between;
             margin-top: 10px;
             padding-top: 8px;
-            border-top: 2px solid #2b221a;
+            border-top: 2px solid var(--receipt-total-border);
             font-weight: 700;
             font-size: 13px;
         }
@@ -1048,8 +1062,10 @@
     <div class="progress-container" id="progressContainer">
         <div class="progress-layout">
             <div class="coffee-cup-mug">
-                <div class="coffee-liquid-fill" id="coffeeLiquidFill">
-                    <div class="coffee-froth-head"></div>
+                <div class="coffee-cup-inner">
+                    <div class="coffee-liquid-fill" id="coffeeLiquidFill">
+                        <div class="coffee-froth-head"></div>
+                    </div>
                 </div>
                 <div class="steam-container" id="steamContainer">
                     <div class="steam-wisp"></div>
@@ -1066,7 +1082,7 @@
             <div class="run-id-clipboard-wrapper">
                 <input type="text" class="run-id-display-field" id="batchIdDisplay" readonly value="Batch ID: #00000">
                 <button type="button" class="btn-clipboard-copy" id="copyBtn" onclick="copyBatchIdToClipboard()">
- <span id="copyBtnText">📋 Copy ID</span>
+                    <span id="copyBtnText">📋 Copy ID</span>
                 </button>
             </div>
         </div>
@@ -1260,7 +1276,7 @@
         document.getElementById('logBox').innerHTML = '';
         
         updateProgress(5, "Lighting under-kettle fire lines...");
- appendLog("Forwarding extraction security token to roastery server arrays...");
+        appendLog("Forwarding extraction security token to roastery server arrays...");
 
         try {
             const backendRes = await fetch(BACKEND_URL, {
@@ -1327,7 +1343,7 @@
         document.getElementById('logBox').innerHTML = '';
 
         appendLog(`Plugging gauge wires onto Carafe Batch Element: #${runId}...`);
- updateProgress(10, "Sensing line pressure currents...");
+        updateProgress(10, "Sensing line pressure currents...");
 
         startPolling(runId);
     }
@@ -1361,12 +1377,12 @@
             } else if (status === "completed") {
                 clearInterval(pollInterval);
                 if (conclusion === "success") {
- updateProgress(100, "Pour complete!");
+                    updateProgress(100, "Pour complete!");
                     setTimeout(() => {
                         updateProgress(100, "Drip process concluded! Boxing hot thermos container...");
                     }, 500);
                     await locateAndLinkArtifact(runId);
- } else {
+                } else {
                     updateProgress(100, `Heater short-circuit: ${conclusion}`, 'error');
                     resetUI();
                 }
@@ -1406,7 +1422,7 @@
     function populateReceipt(runId, status, downloadUrl) {
         const now = new Date();
         const dateStr = now.toLocaleDateString('en-GB', { 
- weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() + ' • ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() + ' • ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
         document.getElementById('receiptDate').textContent = dateStr;
         document.getElementById('receiptBatch').textContent = `BATCH #${runId}`;
@@ -1495,36 +1511,39 @@
 
     function copyBatchIdToClipboard() {
         const copyInput = document.getElementById('batchIdDisplay');
+        const btn = document.getElementById('copyBtn');
         const btnText = document.getElementById('copyBtnText');
         
+        const onSuccess = () => {
+            btnText.innerText = "✔️ Copied!";
+            btn.style.background = 'var(--accent)';
+            btn.style.color = '#fff';
+            setTimeout(() => {
+                btnText.innerText = "📋 Copy ID";
+                btn.style.background = '';
+                btn.style.color = '';
+            }, 2000);
+        };
+        
         if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(copyInput.value).then(() => {
-                uiCopySuccessNotification(btnText);
-            }).catch(() => {
-                legacyCopyFallback(copyInput, btnText);
+            navigator.clipboard.writeText(copyInput.value).then(onSuccess).catch(() => {
+                legacyCopyFallback(copyInput, onSuccess);
             });
         } else {
-            legacyCopyFallback(copyInput, btnText);
+            legacyCopyFallback(copyInput, onSuccess);
         }
     }
 
-    function legacyCopyFallback(inputElement, labelContainer) {
+    function legacyCopyFallback(inputElement, onSuccess) {
         inputElement.select();
         inputElement.setSelectionRange(0, 99999);
         try {
             document.execCommand('copy');
-            uiCopySuccessNotification(labelContainer);
+            onSuccess();
         } catch (err) {
             alert('Unable to copy batch ID via native handles.');
         }
         window.getSelection().removeAllRanges();
-    }
-
-    function uiCopySuccessNotification(targetLabel) {
-        targetLabel.innerText = "✔️ Copied!";
-        setTimeout(() => {
-            targetLabel.innerText = "📋 Copy ID";
-        }, 2000);
     }
 </script>
 
