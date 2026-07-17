@@ -969,149 +969,6 @@
             animation: shake 0.4s ease-in-out;
         }
 
-        /* New HTML Viewer Styles */
-        .html-viewer-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .file-upload-container {
-            margin-bottom: 20px;
-        }
-
-        .file-upload-label {
-            display: block;
-            margin-bottom: 10px;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        .file-upload-input {
-            display: none;
-        }
-
-        .file-upload-button {
-            display: inline-block;
-            background: var(--input-bg);
-            border: 1px solid var(--card-border);
-            color: var(--text-main);
-            padding: 12px 20px;
-            border-radius: var(--btn-radius);
-            cursor: pointer;
-            font-size: 14px;
-            font-family: 'Quicksand', sans-serif;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .file-upload-button:hover {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        .file-info {
-            margin-top: 10px;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        .file-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid var(--card-border);
-            border-radius: var(--btn-radius);
-            background: var(--input-bg);
-            margin-bottom: 20px;
-        }
-
-        .file-list li {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--card-border);
-            cursor: pointer;
-            transition: background 0.3s;
-            font-size: 14px;
-        }
-
-        .file-list li:last-child {
-            border-bottom: none;
-        }
-
-        .file-list li:hover {
-            background: rgba(142, 111, 90, 0.1);
-        }
-
-        .file-list li.active {
-            background: var(--accent);
-            color: white;
-        }
-
-        .preview-container {
-            flex-grow: 1;
-            border: 1px solid var(--card-border);
-            border-radius: var(--btn-radius);
-            background: white;
-            overflow: hidden;
-            min-height: 300px;
-        }
-
-        .preview-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .sticky-bottom-header {
-            position: sticky;
-            bottom: 0;
-            background: var(--card-bg);
-            border-top: var(--card-border);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .navigation-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .nav-button {
-            background: var(--input-bg);
-            border: 1px solid var(--card-border);
-            color: var(--text-main);
-            padding: 8px 16px;
-            border-radius: var(--btn-radius);
-            cursor: pointer;
-            font-size: 14px;
-            font-family: 'Quicksand', sans-serif;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .nav-button:hover {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        .nav-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .file-counter {
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
         @media (max-width: 600px) {
             .container { padding: 24px; }
             h1 { font-size: 22px; }
@@ -1139,10 +996,6 @@
         <button class="tab-btn" onclick="switchTab('resume-tab', this)">
             <span class="label-main">🫙 Saved Carafe</span>
             <span class="label-desc">Re-hook with Batch ID</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('html-viewer-tab', this)">
-            <span class="label-main">🌐 HTML Viewer</span>
-            <span class="label-desc">View extracted files</span>
         </button>
     </div>
     
@@ -1203,33 +1056,6 @@
             <button class="action-button" id="resumeBtn" onclick="resumeRunTracking()">
                 <span>🔌 Hook Into Active Carafe Line</span>
             </button>
-        </div>
-
-        <div id="html-viewer-tab" class="tab-content">
-            <div class="html-viewer-container">
-                <div class="file-upload-container">
-                    <label class="file-upload-label">📁 Select ZIP File</label>
-                    <input type="file" id="zipFileInput" class="file-upload-input" accept=".zip" onchange="handleZipFileSelect(event)">
-                    <label for="zipFileInput" class="file-upload-button">Choose ZIP File</label>
-                    <div id="fileInfo" class="file-info">No file selected</div>
-                </div>
-
-                <ul id="fileList" class="file-list"></ul>
-
-                <div class="preview-container">
-                    <iframe id="previewFrame" class="preview-frame" srcdoc="<html><body style='display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial,sans-serif;color:#aaa;'>Select a file to preview</body></html>"></iframe>
-                </div>
-
-                <div class="sticky-bottom-header">
-                    <div class="file-counter">
-                        <span id="currentIndex">0</span> / <span id="totalFiles">0</span>
-                    </div>
-                    <div class="navigation-buttons">
-                        <button class="nav-button" id="prevButton" onclick="navigateFile(-1)" disabled>← Previous</button>
-                        <button class="nav-button" id="nextButton" onclick="navigateFile(1)" disabled>Next →</button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1307,19 +1133,10 @@
 </div>
 
 <script>
-    // Add jszip dependency for handling zip files
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-    document.head.appendChild(script);
-
     let pollInterval = null;
     let currentCaptchaCode = "";
     let activeGlobalBatchId = "";
     let lastProcessedUrls = [];
-    
-    // New variables for HTML viewer
-    let zipFiles = [];
-    let currentFileIndex = -1;
 
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
@@ -1428,8 +1245,7 @@
         if (type === 'error') color = '#c96f6f';
         if (type === 'warn') color = '#e0b384';
         if (type === 'success') color = '#8cb38a';
-        logBox.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}
-`;
+        logBox.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}</span><br>`;
         logBox.scrollTop = logBox.scrollHeight;
     }
 
@@ -1620,7 +1436,7 @@
             div.style.animationDelay = `${i * 0.08}s`;
             div.innerHTML = `
                 <span class="receipt-item-name" title="${url}">${url}</span>
-                <span class="receipt-item-status">${status === 'success' ? '✓ Done' : '✗ Fail'}
+                <span class="receipt-item-status">${status === 'success' ? '✓ Done' : '✗ Fail'}</span>
             `;
             itemsContainer.appendChild(div);
         });
@@ -1729,81 +1545,7 @@
         }
         window.getSelection().removeAllRanges();
     }
+</script>
 
-    // New functions for HTML viewer functionality
-    async function handleZipFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        document.getElementById('fileInfo').textContent = `Selected: ${file.name}`;
-
-        const zip = new JSZip();
-        const contents = await zip.loadAsync(file);
-        
-        // Get all file paths and sort them alphabetically
-        zipFiles = Object.keys(contents.files)
-            .filter(filename => !contents.files[filename].dir) // Only files, not directories
-            .sort() // Sort alphabetically
-            .map(filename => ({ filename, file: contents.files[filename] }));
-        
-        // Update file list UI
-        const fileList = document.getElementById('fileList');
-        fileList.innerHTML = '';
-        
-        zipFiles.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.textContent = item.filename;
-            li.onclick = () => selectFile(index);
-            fileList.appendChild(li);
-        });
-        
-        // Update counters
-        document.getElementById('totalFiles').textContent = zipFiles.length;
-        document.getElementById('currentIndex').textContent = '0';
-        
-        // Reset navigation
-        currentFileIndex = -1;
-        updateNavigationButtons();
-    }
-
-    function selectFile(index) {
-        if (index < 0 || index >= zipFiles.length) return;
-        
-        currentFileIndex = index;
-        
-        // Update active state in file list
-        const items = document.querySelectorAll('#fileList li');
-        items.forEach((item, i) => {
-            if (i === index) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
-        
-        // Load the file content
-        loadFileContent(zipFiles[index]);
-        
-        // Update counter
-        document.getElementById('currentIndex').textContent = index + 1;
-        
-        // Update navigation buttons
-        updateNavigationButtons();
-    }
-
-    function loadFileContent(fileObj) {
-        const frame = document.getElementById('previewFrame');
-        
-        fileObj.file.async('string').then(content => {
-            // Determine content type based on file extension
-            const ext = fileObj.filename.split('.').pop().toLowerCase();
-            
-            if (ext === 'html' || ext === 'htm') {
-                // For HTML files, just set the content directly
-                frame.srcdoc = content;
-            } else if (ext === 'css') {
-                // For CSS files, wrap in a simple HTML structure
-                frame.srcdoc = `
-                    <html>
-                        <head>
-                            <title>${fileObj.filename}
+</body>
+</html>
