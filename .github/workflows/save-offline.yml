@@ -41,7 +41,7 @@ jobs:
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            viewport: { width: 1440, height: 2500 }
+            viewport: { width: 1000, height: 2500 } // Width optimised for mobile/vertical viewing
           });
           const page = await context.newPage();
 
@@ -58,7 +58,7 @@ jobs:
                 window.scrollBy(0, distance);
                 totalHeight += distance;
 
-                if (totalHeight >= scrollHeight || totalHeight > 120000) { 
+                if (totalHeight >= scrollHeight || totalHeight > 150000) { 
                   clearInterval(timer);
                   resolve();
                 }
@@ -66,26 +66,24 @@ jobs:
             });
           });
 
-          console.log("Letting assets stabilize in background memory threads...");
+          console.log("Waiting for network traffic to drop...");
           await page.waitForLoadState('networkidle');
-          await page.waitForTimeout(4000);
+          await page.waitForTimeout(5000);
 
-          console.log("Inlining all document assets to raw Base64 structures...");
+          console.log("Extracting, encoding, and fixing page styles...");
           await page.evaluate(async () => {
-            // Helper to download images from browser memory space and convert to string
+            // 1. Download images and convert them into raw inline Base64 data strings
             const convertImageToBase64 = async (imgElement) => {
               try {
                 const canvas = document.createElement('canvas');
                 canvas.width = imgElement.naturalWidth || imgElement.width;
                 canvas.height = imgElement.naturalHeight || imgElement.height;
-                
                 if (canvas.width === 0 || canvas.height === 0) return null;
                 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(imgElement, 0, 0);
                 return canvas.toDataURL('image/jpeg', 0.9);
               } catch (e) {
-                // Fallback via clean network blob fetch if canvas drawing triggers security taints
                 try {
                   const res = await fetch(imgElement.src);
                   const blob = await res.blob();
@@ -107,16 +105,42 @@ jobs:
                 const base64Data = await convertImageToBase64(img);
                 if (base64Data) {
                   img.src = base64Data;
-                  // Strip layout attributes that conflict with offline renders
                   img.removeAttribute('srcset');
                   img.removeAttribute('loading');
                   img.removeAttribute('data-src');
                 }
               }
             }
+
+            // 2. Inline all CSS from external sheets directly into the document head
+            const styles = Array.from(document.styleSheets);
+            let combinedCss = '';
+            for (const sheet of styles) {
+              try {
+                const rules = Array.from(sheet.cssRules);
+                for (const rule of rules) {
+                  combinedCss += rule.cssText + '\n';
+                }
+              } catch (e) {
+                // Skips security blocks on stylesheet evaluation
+              }
+            }
+            const styleElement = document.createElement('style');
+            styleElement.textContent = combinedCss;
+            document.head.appendChild(styleElement);
+
+            // 3. Inject custom layout modifications to guarantee seamless mobile styling
+            const customFixes = document.createElement('style');
+            customFixes.textContent = `
+              body, html { margin: 0 !important; padding: 0 !important; background: #111 !important; width: 100% !important; }
+              img { display: block !important; width: 100% !important; max-width: 100% !important; height: auto !important; margin: 0 auto !important; }
+              #chapter-wrapper, .chapter-content, .reader-area, .wp-manga-chapter-img { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 auto !important; }
+              div, p, section { max-width: 100% !important; }
+            `;
+            document.head.appendChild(customFixes);
           });
 
-          console.log("Saving perfectly compiled HTML matrix directly to file...");
+          console.log("Saving finalized layout file...");
           const isolatedHtml = await page.content();
           fs.writeFileSync(process.env.OUTPUT_FILENAME, isolatedHtml);
           
