@@ -9,9 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     
     <style>
-        /* ==========================================================================
-           1. CAFE NIGHT THEME (DEFAULT - Rich Espresso Lounge)
-           ========================================================================== */
         :root {
             --bg-gradient: linear-gradient(135deg, #120f0e 0%, #1e1916 100%);
             --card-bg: rgba(36, 30, 26, 0.95);
@@ -19,8 +16,6 @@
             --card-radius: 24px;
             --text-main: #f3ede8;
             --text-muted: #a8998f;
-            
-            /* Espresso Palettes */
             --accent-glow: rgba(212, 140, 94, 0.3);
             --accent: #d48c5e;
             --accent-hover: #e39d71;
@@ -38,9 +33,6 @@
             --receipt-accent: #936e4f;
         }
 
-        /* ==========================================================================
-           2. COFFEE MORNING THEME (STRUCTURAL REDESIGN - Bright Artisan Bistro)
-           ========================================================================== */
         [data-theme="light"] {
             --bg-gradient: linear-gradient(180deg, #fbfaf7 0%, #f0ede4 100%);
             --card-bg: #ffffff;
@@ -48,7 +40,6 @@
             --card-radius: 12px;
             --text-main: #2b221a;
             --text-muted: #7a6e65;
-            
             --accent-glow: rgba(147, 110, 79, 0.15);
             --accent: #936e4f;
             --accent-hover: #7b5b40;
@@ -66,17 +57,14 @@
             --receipt-accent: #936e4f;
         }
 
-        /* ==========================================================================
-           3. BASE STRUCTURE & BACKGROUND CAFE ENVIRONMENT
-           ========================================================================== */
         * {
             box-sizing: border-box;
             transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                         border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                         color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                         box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
- opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
- transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                        opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         html, body {
@@ -122,7 +110,7 @@
             position: relative;
             z-index: 10;
             margin: auto;
-            animation: container-enter0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: container-enter 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             opacity: 0;
             transform: translateY(30px) rotateX(6deg);
         }
@@ -131,9 +119,6 @@
             to { opacity: 1; transform: translateY(0) rotateX(0deg); }
         }
 
-        /* ==========================================================================
-           4. ROASTERY HEADER AREA
-           ========================================================================== */
         .header-area {
             display: flex;
             justify-content: space-between;
@@ -141,7 +126,7 @@
             border-bottom: 2px dashed var(--card-border);
             padding-bottom: 25px;
             margin-bottom: 30px;
-            animation: slide-down0.6s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+            animation: slide-down 0.6s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         @keyframes slide-down {
@@ -194,9 +179,6 @@
             transform: scale(0.9);
         }
 
-        /* ==========================================================================
-           5. BREW MENU SELECTION TABS
-           ========================================================================== */
         .tabs {
             display: flex;
             gap: 10px;
@@ -295,9 +277,6 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* ==========================================================================
-           6. HOUSE INGREDIENTS CONFIGURE INPUTS
-           ========================================================================== */
         .form-group {
             display: flex;
             flex-direction: column;
@@ -367,9 +346,6 @@
             font-family: 'Playfair Display', serif;
         }
 
-        /* ==========================================================================
-           7. INTERACTIVE COFFEE GRINDER CAPTCHA SYSTEM
-           ========================================================================== */
         .lofi-captcha-container {
             background: var(--input-bg);
             border: 1px solid var(--card-border);
@@ -431,9 +407,6 @@
             text-align: center;
         }
 
-        /* ==========================================================================
-           8. MASTER BUTTON ARCHITECTURE
-           ========================================================================== */
         .action-button {
             background: var(--accent);
             color: #fff;
@@ -453,7 +426,7 @@
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             overflow: hidden;
- animation: fade-in-up 0.5s 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+            animation: fade-in-up 0.5s 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         .action-button::after {
@@ -496,9 +469,6 @@
             50% { opacity: 0.3; }
         }
 
-        /* ==========================================================================
-           9. PHYSICAL COFFEE CUP GAUGE (LIQUID PROGRESS ACCELERATOR)
-           ========================================================================== */
         .progress-container {
             margin-top: 35px;
             display: none;
@@ -529,7 +499,7 @@
             border-radius: 0 0 24px 24px;
             flex-shrink: 0;
             border: 3px solid var(--text-muted);
-            overflow: hidden;
+            overflow: visible;
             animation: mug-appear 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
 
@@ -570,7 +540,6 @@
             50% { transform: scaleX(1.1); }
         }
 
-        /* Steam wisps */
         .steam-container {
             position: absolute;
             top: -35px;
@@ -673,7 +642,7 @@
             content: '';
             position: absolute;
             top: 0;
-            left:0;
+            left: 0;
             bottom: 0;
             width: 30px;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
@@ -685,9 +654,6 @@
             100% { transform: translateX(calc(100% + 30px)); }
         }
 
-        /* ==========================================================================
-           10. COLLAPSIBLE LEDGER SHELF & CONSOLE LOGS
-           ========================================================================== */
         .ledger-collapsible {
             margin-top: 25px;
             border: 1px solid var(--card-border);
@@ -748,16 +714,13 @@
             display: block;
             animation: log-unfold 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
             transform-origin: top;
- }
+        }
 
         @keyframes log-unfold {
             from { opacity: 0; transform: scaleY(0.95); }
             to { opacity: 1; transform: scaleY(1); }
         }
 
-        /* ==========================================================================
-           11. CARAMEL COUNTER ARRIVAL ZONE & RUN ID TOOLKIT
-           ========================================================================== */
         .run-id-clipboard-wrapper {
             display: flex;
             max-width: 320px;
@@ -804,9 +767,6 @@
             transform: scale(0.95);
         }
 
-        /* ==========================================================================
-           12. CUTE RECEIPT COMPLETION COMPONENT
-           ========================================================================== */
         .receipt-zone {
             margin-top: 30px;
             display: none;
@@ -826,7 +786,7 @@
             line-height: 1.6;
             transform-origin: top center;
             animation: receipt-print 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
- }
+        }
 
         @keyframes receipt-print {
             from {
@@ -840,7 +800,7 @@
         }
 
         .receipt-paper::before,
- .receipt-paper::after {
+        .receipt-paper::after {
             content: '';
             display: block;
             height: 12px;
@@ -871,7 +831,7 @@
             font-weight: 800;
             color: var(--receipt-accent);
             margin: 0 0 4px 0;
- letter-spacing: 1px;
+            letter-spacing: 1px;
         }
 
         .receipt-meta {
@@ -975,9 +935,6 @@
             transform: scale(0.97);
         }
 
-        /* ==========================================================================
-           13. UTILITY ANIMATIONS
-           ========================================================================== */
         @keyframes coffee-float {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             50% { transform: translateY(-6px) rotate(8deg); }
@@ -998,7 +955,6 @@
             animation: shake 0.4s ease-in-out;
         }
 
-        /* Responsive tweaks */
         @media (max-width: 600px) {
             .container { padding: 24px; }
             h1 { font-size: 22px; }
@@ -1123,14 +1079,13 @@
         <div class="log-box" id="logBox"></div>
     </div>
 
-    <!-- Cute Receipt Completion Zone -->
     <div class="receipt-zone" id="receiptZone">
         <div class="receipt-paper" id="receiptPaper">
             <div class="receipt-header">
                 <p class="receipt-cafe-name">The Cozy Brewroom</p>
-                <p class="receipt-meta" id="receiptDate">SAT18 JUL 2026 • 12:03 AM</p>
+                <p class="receipt-meta" id="receiptDate">SAT 18 JUL 2026 • 12:03 AM</p>
                 <p class="receipt-meta" id="receiptBatch">BATCH #00000</p>
- </div>
+            </div>
             <div class="receipt-body" id="receiptBody">
                 <div class="receipt-section">
                     <div class="receipt-section-title">Extraction Order</div>
@@ -1167,7 +1122,7 @@
     let activeGlobalBatchId = "";
     let lastProcessedUrls = [];
 
- const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
+    const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -1261,7 +1216,6 @@
         targetTab.classList.add('active');
         el.classList.add('active');
         
-        // Reset transform after animation trigger
         requestAnimationFrame(() => {
             targetTab.style.opacity = '';
             targetTab.style.transform = '';
@@ -1306,7 +1260,7 @@
         document.getElementById('logBox').innerHTML = '';
         
         updateProgress(5, "Lighting under-kettle fire lines...");
-        appendLog("Forwarding extraction security token to roastery server arrays...");
+ appendLog("Forwarding extraction security token to roastery server arrays...");
 
         try {
             const backendRes = await fetch(BACKEND_URL, {
@@ -1373,7 +1327,7 @@
         document.getElementById('logBox').innerHTML = '';
 
         appendLog(`Plugging gauge wires onto Carafe Batch Element: #${runId}...`);
-        updateProgress(10, "Sensing line pressure currents...");
+ updateProgress(10, "Sensing line pressure currents...");
 
         startPolling(runId);
     }
@@ -1407,7 +1361,7 @@
             } else if (status === "completed") {
                 clearInterval(pollInterval);
                 if (conclusion === "success") {
-                    updateProgress(100, "Pour complete!");
+ updateProgress(100, "Pour complete!");
                     setTimeout(() => {
                         updateProgress(100, "Drip process concluded! Boxing hot thermos container...");
                     }, 500);
@@ -1438,7 +1392,6 @@
             
             appendLog(`[Fresh] Extraction complete. Pour out!`);
             
-            // Populate and show receipt
             populateReceipt(runId, "success", downloadUrl);
             
             resetUI();
@@ -1453,7 +1406,7 @@
     function populateReceipt(runId, status, downloadUrl) {
         const now = new Date();
         const dateStr = now.toLocaleDateString('en-GB', { 
-            weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() + ' • ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+ weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() + ' • ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
         document.getElementById('receiptDate').textContent = dateStr;
         document.getElementById('receiptBatch').textContent = `BATCH #${runId}`;
@@ -1497,12 +1450,11 @@
         const receiptZone = document.getElementById('receiptZone');
         receiptZone.style.display = 'block';
         
-        // Trigger animation re-flow
         const paper = document.getElementById('receiptPaper');
         paper.style.animation = 'none';
-        paper.offsetHeight; // force reflow
+        paper.offsetHeight;
         paper.style.animation = '';
- }
+    }
 
     function updateProgress(percentage, text, mode = 'normal') {
         const bar = document.getElementById('progressBar');
@@ -1514,7 +1466,6 @@
         cupLiquid.style.height = `${percentage}%`;
         txt.innerText = `${percentage}% — ${text}`;
         
-        // Show steam when coffee is hot enough (above 40%)
         if (percentage > 40) {
             steam.classList.add('visible');
         } else {
@@ -1537,7 +1488,7 @@
 
     function shakeElement(el) {
         el.classList.remove('shake-animation');
-        void el.offsetWidth; // reflow
+        void el.offsetWidth;
         el.classList.add('shake-animation');
         setTimeout(() => el.classList.remove('shake-animation'), 400);
     }
@@ -1558,7 +1509,7 @@
     }
 
     function legacyCopyFallback(inputElement, labelContainer) {
- inputElement.select();
+        inputElement.select();
         inputElement.setSelectionRange(0, 99999);
         try {
             document.execCommand('copy');
