@@ -22,17 +22,20 @@
             
             /* Espresso Palettes */
             --accent-glow: rgba(212, 140, 94, 0.3);
-            --accent: #d48c5e;        /* Roasted Caramel Steamer */
+            --accent: #d48c5e;
             --accent-hover: #e39d71;
-            --accent-secondary: #8e6f5a; /* Smooth Hazelnut Milk */
-            --success: #8cb38a;       /* Matcha Green */
-            --error: #c96f6f;         /* Scalded Red */
+            --accent-secondary: #8e6f5a;
+            --success: #8cb38a;
+            --error: #c96f6f;
             --input-bg: #191412;
             --shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
             --cup-porcelain: #eae0d5;
             --coffee-liquid: #5c3d2e;
             --btn-transform: translateY(-2px);
             --btn-radius: 12px;
+            --receipt-bg: #fdf8f0;
+            --receipt-text: #2b221a;
+            --receipt-accent: #936e4f;
         }
 
         /* ==========================================================================
@@ -42,23 +45,25 @@
             --bg-gradient: linear-gradient(180deg, #fbfaf7 0%, #f0ede4 100%);
             --card-bg: #ffffff;
             --card-border: 1px solid #dcd3c7;
-            --card-radius: 12px; /* Sharper, modern clean lines for morning layout */
-            --text-main: #2b221a; /* Dark Roasted Bean */
-            --text-muted: #7a6e65; /* Milky froth text */
+            --card-radius: 12px;
+            --text-main: #2b221a;
+            --text-muted: #7a6e65;
             
-            /* Sunlit Cafe Palettes */
             --accent-glow: rgba(147, 110, 79, 0.15);
-            --accent: #936e4f;        /* Deep Cream Cinnamon */
+            --accent: #936e4f;
             --accent-hover: #7b5b40;
-            --accent-secondary: #bcab9a; 
+            --accent-secondary: #bcab9a;
             --success: #5f8762;
             --error: #b84d4d;
             --input-bg: #f8f6f2;
             --shadow: 0 8px 24px rgba(61, 46, 34, 0.08);
             --cup-porcelain: #2b221a;
             --coffee-liquid: #865439;
-            --btn-transform: scale(0.98); /* Inverted interaction texture */
-            --btn-radius: 4px; /* Completely alternative geometry architecture */
+            --btn-transform: scale(0.98);
+            --btn-radius: 4px;
+            --receipt-bg: #ffffff;
+            --receipt-text: #2b221a;
+            --receipt-accent: #936e4f;
         }
 
         /* ==========================================================================
@@ -66,7 +71,12 @@
            ========================================================================== */
         * {
             box-sizing: border-box;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                        border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                        color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+ opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+ transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         html, body {
@@ -88,9 +98,9 @@
             justify-content: center;
             overflow-y: auto; 
             padding: 40px 20px;
+            perspective: 1200px;
         }
 
-        /* Micro-texture Steam Overlay simulation across the cafe floor */
         body::before {
             content: '';
             position: fixed;
@@ -112,6 +122,13 @@
             position: relative;
             z-index: 10;
             margin: auto;
+            animation: container-enter0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+            transform: translateY(30px) rotateX(6deg);
+        }
+
+        @keyframes container-enter {
+            to { opacity: 1; transform: translateY(0) rotateX(0deg); }
         }
 
         /* ==========================================================================
@@ -124,6 +141,12 @@
             border-bottom: 2px dashed var(--card-border);
             padding-bottom: 25px;
             margin-bottom: 30px;
+            animation: slide-down0.6s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        @keyframes slide-down {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         h1 {
@@ -138,8 +161,8 @@
 
         .barista-icon {
             font-size: 32px;
-            animation: coffee-float 4s infinite ease-in-out;
             display: inline-block;
+            animation: coffee-float 4s infinite ease-in-out;
         }
 
         .theme-control {
@@ -147,7 +170,6 @@
             gap: 10px;
         }
 
-        /* Structural Button Mutation between themes */
         .btn-round {
             background: var(--input-bg);
             border: var(--card-border);
@@ -161,10 +183,15 @@
             justify-content: center;
             font-size: 18px;
             font-weight: bold;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .btn-round:hover {
             border-color: var(--accent);
             box-shadow: 0 0 10px var(--accent-glow);
+            transform: var(--btn-transform) scale(1.1);
+        }
+        .btn-round:active {
+            transform: scale(0.9);
         }
 
         /* ==========================================================================
@@ -178,6 +205,12 @@
             border-radius: calc(var(--btn-radius) + 4px);
             margin-bottom: 30px;
             border: 1px solid var(--card-border);
+            animation: slide-up 0.6s 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .tab-btn {
@@ -195,12 +228,32 @@
             flex-direction: column;
             align-items: center;
             gap: 4px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--accent);
+            opacity: 0;
+            transform: scale(0.8);
+            border-radius: inherit;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-btn span {
+            position: relative;
+            z-index: 1;
         }
 
         .tab-btn span.label-main {
             font-family: 'Playfair Display', serif;
             font-size: 16px;
             font-weight: 600;
+            display: block;
         }
         .tab-btn span.label-desc {
             font-size: 11px;
@@ -208,21 +261,38 @@
             opacity: 0.7;
         }
 
+        .tab-btn:hover {
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
         .tab-btn.active {
             background: var(--card-bg);
             color: var(--accent);
             border: 1px solid var(--card-border);
             box-shadow: var(--shadow);
+            transform: translateY(-2px);
+        }
+        .tab-btn.active::before {
+            opacity: 0;
+            transform: scale(1);
         }
 
         .tab-content {
             display: none;
+            opacity: 0;
+            transform: translateX(20px);
         }
 
         .tab-content.active {
             display: flex;
             flex-direction: column;
             gap: 24px;
+            animation: tab-enter 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes tab-enter {
+            to { opacity: 1; transform: translateX(0); }
         }
 
         /* ==========================================================================
@@ -232,6 +302,16 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            animation: fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         label {
@@ -255,11 +335,13 @@
             font-family: 'Quicksand', sans-serif;
             width: 100%;
             outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         input:focus, select:focus, textarea:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 4px var(--accent-glow);
+            transform: translateY(-1px);
         }
 
         textarea {
@@ -277,6 +359,7 @@
             font-size: 13px;
             line-height: 1.6;
             color: var(--text-muted);
+            animation: fade-in-up 0.5s 0.15s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         .cozy-guide strong {
@@ -295,6 +378,7 @@
             display: flex;
             flex-direction: column;
             gap: 14px;
+            animation: fade-in-up 0.5s 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         .captcha-header-wrapper {
@@ -319,7 +403,7 @@
 
         #captchaCanvas {
             border-radius: calc(var(--btn-radius) - 4px);
-            background: #1e1916; 
+            background: #1e1916;
             border: 1px solid var(--card-border);
             flex-grow: 1;
         }
@@ -333,6 +417,10 @@
             height: 44px;
             font-size: 16px;
             flex-shrink: 0;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-captcha-refresh:hover {
+            transform: rotate(180deg) scale(1.1);
         }
 
         .captcha-input-row input {
@@ -362,11 +450,37 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+ animation: fade-in-up 0.5s 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .action-button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
         }
 
         .action-button:hover:not(:disabled) {
             background: var(--accent-hover);
-            transform: var(--btn-transform);
+            transform: var(--btn-transform) scale(1.02);
+            box-shadow: 0 10px 30px var(--accent-glow);
+        }
+        .action-button:hover:not(:disabled)::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .action-button:active:not(:disabled) {
+            transform: scale(0.96);
         }
 
         .action-button:disabled {
@@ -374,6 +488,12 @@
             cursor: not-allowed;
             box-shadow: none;
             opacity: 0.5;
+            animation: button-pulse 2s infinite;
+        }
+
+        @keyframes button-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.3; }
         }
 
         /* ==========================================================================
@@ -385,7 +505,14 @@
             background: var(--input-bg);
             border: 1px solid var(--card-border);
             padding: 24px;
-            border-radius: var(--btn-radius);
+            border-radius: var(--card-radius);
+            animation: expand-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            transform-origin: top center;
+        }
+
+        @keyframes expand-in {
+            from { opacity: 0; transform: scaleY(0.8) translateY(-10px); }
+            to { opacity: 1; transform: scaleY(1) translateY(0); }
         }
 
         .progress-layout {
@@ -394,7 +521,6 @@
             gap: 25px;
         }
 
-        /* CSS Engineered Barista Mug Container */
         .coffee-cup-mug {
             position: relative;
             width: 60px;
@@ -404,9 +530,14 @@
             flex-shrink: 0;
             border: 3px solid var(--text-muted);
             overflow: hidden;
+            animation: mug-appear 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
 
-        /* Mug Handle Attachment */
+        @keyframes mug-appear {
+            from { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+            to { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+
         .coffee-cup-mug::after {
             content: '';
             position: absolute;
@@ -418,21 +549,91 @@
             left: auto;
         }
 
-        /* Liquid Mass Layer Elements */
         .coffee-liquid-fill {
             position: absolute;
             bottom: 0; left: 0; width: 100%;
-            height: 0%; /* Dynamic fill hook */
+            height: 0%;
             background: var(--coffee-liquid);
-            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Dynamic Froth Layer */
         .coffee-froth-head {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 6px;
             background: #e6ccb2;
             opacity: 0.85;
+            animation: froth-bubble 3s infinite ease-in-out;
+        }
+
+        @keyframes froth-bubble {
+            0%, 100% { transform: scaleX(1); }
+            50% { transform: scaleX(1.1); }
+        }
+
+        /* Steam wisps */
+        .steam-container {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .steam-container.visible {
+            opacity: 1;
+        }
+
+        .steam-wisp {
+            position: absolute;
+            bottom: 0;
+            width: 8px;
+            height: 20px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            filter: blur(4px);
+            animation: steam-rise 2.5s infinite ease-out;
+        }
+
+        .steam-wisp:nth-child(1) {
+            left: 8px;
+            animation-delay: 0s;
+            width: 6px;
+            height: 16px;
+        }
+
+        .steam-wisp:nth-child(2) {
+            left: 18px;
+            animation-delay: 0.6s;
+            width: 10px;
+            height: 24px;
+        }
+
+        .steam-wisp:nth-child(3) {
+            left: 28px;
+            animation-delay: 1.2s;
+            width: 5px;
+            height: 14px;
+        }
+
+        @keyframes steam-rise {
+            0% {
+                transform: translateY(0) scaleX(1);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.6;
+            }
+            80% {
+                opacity: 0.2;
+            }
+            100% {
+                transform: translateY(-35px) scaleX(2);
+                opacity: 0;
+            }
         }
 
         .progress-details {
@@ -444,6 +645,7 @@
             font-weight: 700;
             margin-bottom: 8px;
             font-family: 'Playfair Display', serif;
+            transition: all 0.3s ease;
         }
 
         .progress-bar-wrapper {
@@ -462,6 +664,25 @@
             width: 0%;
             background: var(--accent);
             border-radius: 100px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left:0;
+            bottom: 0;
+            width: 30px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: progress-shimmer 1.5s infinite;
+        }
+
+        @keyframes progress-shimmer {
+            0% { transform: translateX(-30px); }
+            100% { transform: translateX(calc(100% + 30px)); }
         }
 
         /* ==========================================================================
@@ -470,9 +691,10 @@
         .ledger-collapsible {
             margin-top: 25px;
             border: 1px solid var(--card-border);
-            border-radius: var(--btn-radius);
+            border-radius: var(--card-radius);
             overflow: hidden;
             display: none;
+            animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .ledger-trigger {
@@ -486,12 +708,18 @@
             justify-content: space-between;
             align-items: center;
             user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        .ledger-trigger:hover {
+            background: var(--card-bg);
+            color: var(--accent);
         }
 
         .ledger-trigger::after {
             content: '▼';
             font-size: 10px;
-            transition: transform 0.3s;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .ledger-collapsible.open .ledger-trigger::after {
@@ -508,41 +736,28 @@
             line-height: 1.7;
             color: #d1bda7;
             border-top: 1px solid var(--card-border);
-            display: none; /* Controlled via ledger-collapsible deployment block */
+            display: none;
+        }
+
+        [data-theme="light"] .log-box {
+            background: #f0ede4;
+            color: #5a4a3a;
         }
 
         .ledger-collapsible.open .log-box {
             display: block;
+            animation: log-unfold 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            transform-origin: top;
+ }
+
+        @keyframes log-unfold {
+            from { opacity: 0; transform: scaleY(0.95); }
+            to { opacity: 1; transform: scaleY(1); }
         }
 
         /* ==========================================================================
            11. CARAMEL COUNTER ARRIVAL ZONE & RUN ID TOOLKIT
            ========================================================================== */
-        .download-zone {
-            margin-top: 35px;
-            background: rgba(140, 179, 138, 0.08);
-            border: 2px dashed var(--success);
-            padding: 30px;
-            border-radius: var(--card-radius);
-            text-align: center;
-            display: none;
-            animation: pour-pour 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .download-zone h3 {
-            margin: 0 0 10px 0;
-            font-family: 'Playfair Display', serif;
-            font-size: 22px;
-            color: var(--success);
-        }
-
-        .download-zone p {
-            margin: 0 0 25px 0;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        /* Multi-Device Universal Copier Platform */
         .run-id-clipboard-wrapper {
             display: flex;
             max-width: 320px;
@@ -551,6 +766,7 @@
             border: 1px solid var(--card-border);
             border-radius: var(--btn-radius);
             overflow: hidden;
+            animation: fade-in-up 0.5s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         .run-id-display-field {
@@ -578,41 +794,215 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            transition: all 0.2s ease;
         }
-        .btn-clipboard-copy:active {
+        .btn-clipboard-copy:hover {
             background: var(--accent);
             color: #fff;
         }
-
-        .download-btn {
-            background: var(--success);
-            color: white;
-            text-decoration: none;
-            display: inline-block;
-            padding: 16px 32px;
-            border-radius: var(--btn-radius);
-            font-family: 'Playfair Display', serif;
-            font-weight: 700;
-            font-size: 16px;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(140, 179, 138, 0.3);
-        }
-        .download-btn:hover {
-            background: #9bc299;
-            transform: var(--btn-transform);
+        .btn-clipboard-copy:active {
+            transform: scale(0.95);
         }
 
         /* ==========================================================================
-           12. UTILITY ANIMATIONS
+           12. CUTE RECEIPT COMPLETION COMPONENT
+           ========================================================================== */
+        .receipt-zone {
+            margin-top: 30px;
+            display: none;
+            perspective: 800px;
+        }
+
+        .receipt-paper {
+            background: var(--receipt-bg);
+            color: var(--receipt-text);
+            border-radius: 2px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 380px;
+            margin: 0 auto;
+            position: relative;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            transform-origin: top center;
+            animation: receipt-print 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+ }
+
+        @keyframes receipt-print {
+            from {
+                opacity: 0;
+                transform: rotateX(-30deg) scaleY(0.3) translateY(-60px);
+            }
+            to {
+                opacity: 1;
+                transform: rotateX(0deg) scaleY(1) translateY(0);
+            }
+        }
+
+        .receipt-paper::before,
+ .receipt-paper::after {
+            content: '';
+            display: block;
+            height: 12px;
+            background-image: radial-gradient(circle, var(--card-bg) 4px, transparent 5px);
+            background-size: 16px 16px;
+            background-position: bottom;
+            background-repeat: repeat-x;
+        }
+
+        .receipt-paper::before {
+            transform: rotate(180deg);
+            margin-bottom: 10px;
+        }
+
+        .receipt-paper::after {
+            margin-top: 10px;
+        }
+
+        .receipt-header {
+            text-align: center;
+            padding: 16px 20px 10px;
+            border-bottom: 1px dashed #c5b9a8;
+        }
+
+        .receipt-cafe-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--receipt-accent);
+            margin: 0 0 4px 0;
+ letter-spacing: 1px;
+        }
+
+        .receipt-meta {
+            font-size: 10px;
+            color: #8a7e72;
+            margin: 0;
+        }
+
+        .receipt-body {
+            padding: 16px 20px;
+        }
+
+        .receipt-section {
+            margin-bottom: 12px;
+        }
+
+        .receipt-section-title {
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--receipt-accent);
+            margin-bottom: 6px;
+            border-bottom: 1px solid #e8e0d5;
+            padding-bottom: 2px;
+        }
+
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .receipt-item-name {
+            color: var(--receipt-text);
+            max-width: 70%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .receipt-item-status {
+            color: var(--success);
+            font-weight: 600;
+        }
+        .receipt-item-status.error {
+            color: var(--error);
+        }
+
+        .receipt-total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 2px solid #2b221a;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            padding: 10px 20px 20px;
+        }
+
+        .receipt-thanks {
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            color: var(--receipt-accent);
+            margin: 0 0 4px 0;
+        }
+
+        .receipt-smile {
+            font-size: 20px;
+            margin: 0;
+            animation: coffee-float 3s infinite ease-in-out;
+        }
+
+        .receipt-download-btn {
+            display: block;
+            width: calc(100% - 40px);
+            margin: 0 auto 20px;
+            background: var(--receipt-accent);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            border-radius: var(--btn-radius);
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .receipt-download-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(147, 110, 79, 0.3);
+        }
+        .receipt-download-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* ==========================================================================
+           13. UTILITY ANIMATIONS
            ========================================================================== */
         @keyframes coffee-float {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             50% { transform: translateY(-6px) rotate(8deg); }
         }
+
         @keyframes pour-pour {
             from { opacity: 0; transform: scale(0.95) translateY(15px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .shake-animation {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 600px) {
+            .container { padding: 24px; }
+            h1 { font-size: 22px; }
+            .receipt-paper { max-width: 100%; }
         }
     </style>
 </head>
@@ -705,6 +1095,11 @@
                 <div class="coffee-liquid-fill" id="coffeeLiquidFill">
                     <div class="coffee-froth-head"></div>
                 </div>
+                <div class="steam-container" id="steamContainer">
+                    <div class="steam-wisp"></div>
+                    <div class="steam-wisp"></div>
+                    <div class="steam-wisp"></div>
+                </div>
             </div>
             <div class="progress-details">
                 <div class="stage-title" id="progressStage">Kettle cold...</div>
@@ -713,11 +1108,11 @@
                 </div>
             </div>
             <div class="run-id-clipboard-wrapper">
-            <input type="text" class="run-id-display-field" id="batchIdDisplay" readonly value="Batch ID: #00000">
-            <button type="button" class="btn-clipboard-copy" id="copyBtn" onclick="copyBatchIdToClipboard()">
-                <span id="copyBtnText">📋 Copy ID</span>
-            </button>
-        </div>
+                <input type="text" class="run-id-display-field" id="batchIdDisplay" readonly value="Batch ID: #00000">
+                <button type="button" class="btn-clipboard-copy" id="copyBtn" onclick="copyBatchIdToClipboard()">
+ <span id="copyBtnText">📋 Copy ID</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -728,11 +1123,41 @@
         <div class="log-box" id="logBox"></div>
     </div>
 
-    <div class="download-zone" id="downloadZone">
-        <h3>🎉 Extraction Complete! Roasted Fresh.</h3>
-        <p>Your web pages have been captured, pressed, and sealed into an insulated archive bundle.</p>
-
-        <button class="download-btn" id="dlBtn">Claim Roasted ZIP Package</button>
+    <!-- Cute Receipt Completion Zone -->
+    <div class="receipt-zone" id="receiptZone">
+        <div class="receipt-paper" id="receiptPaper">
+            <div class="receipt-header">
+                <p class="receipt-cafe-name">The Cozy Brewroom</p>
+                <p class="receipt-meta" id="receiptDate">SAT18 JUL 2026 • 12:03 AM</p>
+                <p class="receipt-meta" id="receiptBatch">BATCH #00000</p>
+ </div>
+            <div class="receipt-body" id="receiptBody">
+                <div class="receipt-section">
+                    <div class="receipt-section-title">Extraction Order</div>
+                    <div id="receiptItems"></div>
+                </div>
+                <div class="receipt-section">
+                    <div class="receipt-section-title">Brew Settings</div>
+                    <div class="receipt-item">
+                        <span>Filtration</span>
+                        <span id="receiptFilter">Static Drip</span>
+                    </div>
+                    <div class="receipt-item">
+                        <span>Status</span>
+                        <span class="receipt-item-status" id="receiptStatus">Roasted Fresh</span>
+                    </div>
+                </div>
+                <div class="receipt-total-row">
+                    <span>Items Extracted</span>
+                    <span id="receiptTotal">0</span>
+                </div>
+            </div>
+            <button class="receipt-download-btn" id="receiptDownloadBtn">☕ Claim Roasted ZIP Package</button>
+            <div class="receipt-footer">
+                <p class="receipt-thanks">Thank you for brewing with us!</p>
+                <p class="receipt-smile">🍵</p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -740,15 +1165,15 @@
     let pollInterval = null;
     let currentCaptchaCode = "";
     let activeGlobalBatchId = "";
+    let lastProcessedUrls = [];
 
-    const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
+ const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
 
     window.addEventListener('DOMContentLoaded', () => {
         generateCaptcha();
     });
 
-    // Structural Component Alternative Styling Swaps
     function toggleTheme() {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const toggler = document.getElementById('themeToggler');
@@ -786,7 +1211,6 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Grid Elements
         ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
         for (let i = 0; i < canvas.width; i += 12) {
@@ -796,7 +1220,6 @@
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
         }
 
-        // Interference "Vapor Steam Clouds" Lines
         ctx.strokeStyle = lineWaveColor;
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.3;
@@ -827,10 +1250,22 @@
     }
 
     function switchTab(tabId, el) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+            tab.style.opacity = '0';
+            tab.style.transform = 'translateX(-20px)';
+        });
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
+        
+        const targetTab = document.getElementById(tabId);
+        targetTab.classList.add('active');
         el.classList.add('active');
+        
+        // Reset transform after animation trigger
+        requestAnimationFrame(() => {
+            targetTab.style.opacity = '';
+            targetTab.style.transform = '';
+        });
     }
 
     function appendLog(text, type = 'info') {
@@ -839,6 +1274,7 @@
         let color = '#d1bda7'; 
         if (type === 'error') color = '#c96f6f';
         if (type === 'warn') color = '#e0b384';
+        if (type === 'success') color = '#8cb38a';
         logBox.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}</span><br>`;
         logBox.scrollTop = logBox.scrollHeight;
     }
@@ -849,18 +1285,23 @@
         const userCaptchaValue = document.getElementById('captchaInput').value.trim().toUpperCase();
 
         if (!customSecretKey || rawUrls.length === 0) {
+            shakeElement(document.getElementById('passkeyInput'));
+            shakeElement(document.getElementById('urlInput'));
             alert('Pour your master passkey and drop target bean sites to initialize!');
             return;
         }
 
         if (userCaptchaValue !== currentCaptchaCode) {
+            shakeElement(document.getElementById('captchaInput'));
             alert('Grinder alignment check mismatch. Please verify the mill code!');
             generateCaptcha();
             return;
         }
 
+        lastProcessedUrls = rawUrls;
+
         document.getElementById('actionBtn').disabled = true;
-        document.getElementById('downloadZone').style.display = 'none';
+        document.getElementById('receiptZone').style.display = 'none';
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('logBox').innerHTML = '';
         
@@ -921,12 +1362,13 @@
         const runId = document.getElementById('runIdInput').value.trim();
 
         if (!customSecretKey || !runId) {
+            shakeElement(document.getElementById('runIdInput'));
             alert('Please supply both your Passkey and targeted Batch ID!');
             return;
         }
 
         document.getElementById('resumeBtn').disabled = true;
-        document.getElementById('downloadZone').style.display = 'none';
+        document.getElementById('receiptZone').style.display = 'none';
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('logBox').innerHTML = '';
 
@@ -965,9 +1407,12 @@
             } else if (status === "completed") {
                 clearInterval(pollInterval);
                 if (conclusion === "success") {
-                    updateProgress(90, "Drip process concluded! Boxing hot thermos container...");
+                    updateProgress(100, "Pour complete!");
+                    setTimeout(() => {
+                        updateProgress(100, "Drip process concluded! Boxing hot thermos container...");
+                    }, 500);
                     await locateAndLinkArtifact(runId);
-                } else {
+ } else {
                     updateProgress(100, `Heater short-circuit: ${conclusion}`, 'error');
                     resetUI();
                 }
@@ -990,34 +1435,95 @@
             if (!data.artifactId) throw new Error("Package ready but could not extract safe server links.");
 
             const downloadUrl = `https://github.com/${REPO}/actions/runs/${runId}/artifacts/${data.artifactId}`;
-            updateProgress(100, "Carafe fully filled. Serving now.");
             
-            document.getElementById('dlBtn').onclick = () => {
-                window.open(downloadUrl, '_blank');
-                appendLog("Handing flask item over to consumer storage.");
-            };
-            
-            document.getElementById('downloadZone').style.display = 'block';
             appendLog(`[Fresh] Extraction complete. Pour out!`);
+            
+            // Populate and show receipt
+            populateReceipt(runId, "success", downloadUrl);
+            
             resetUI();
 
         } catch (err) {
             appendLog(`Packaging breakdown: ${err.message}`, 'error');
+            populateReceipt(runId, "error", null);
             resetUI();
         }
     }
+
+    function populateReceipt(runId, status, downloadUrl) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB', { 
+            weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() + ' • ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+        document.getElementById('receiptDate').textContent = dateStr;
+        document.getElementById('receiptBatch').textContent = `BATCH #${runId}`;
+        
+        const itemsContainer = document.getElementById('receiptItems');
+        itemsContainer.innerHTML = '';
+        
+        lastProcessedUrls.forEach((url, i) => {
+            const div = document.createElement('div');
+            div.className = 'receipt-item';
+            div.style.animationDelay = `${i * 0.08}s`;
+            div.innerHTML = `
+                <span class="receipt-item-name" title="${url}">${url}</span>
+                <span class="receipt-item-status">${status === 'success' ? '✓ Done' : '✗ Fail'}</span>
+            `;
+            itemsContainer.appendChild(div);
+        });
+
+        const filterVal = document.getElementById('renderJs').value === 'true' ? 'Pressurized Vapor' : 'Static Drip';
+        document.getElementById('receiptFilter').textContent = filterVal;
+        
+        const statusEl = document.getElementById('receiptStatus');
+        statusEl.textContent = status === 'success' ? 'Roasted Fresh' : 'Scalded';
+        statusEl.className = 'receipt-item-status' + (status === 'error' ? ' error' : '');
+        
+        document.getElementById('receiptTotal').textContent = lastProcessedUrls.length;
+
+        const dlBtn = document.getElementById('receiptDownloadBtn');
+        if (status === 'success' && downloadUrl) {
+            dlBtn.style.display = 'block';
+            dlBtn.onclick = () => {
+                window.open(downloadUrl, '_blank');
+                appendLog("Handing flask item over to consumer storage.");
+                dlBtn.innerHTML = "✓ Package Claimed";
+                dlBtn.style.background = "var(--success)";
+            };
+        } else {
+            dlBtn.style.display = 'none';
+        }
+
+        const receiptZone = document.getElementById('receiptZone');
+        receiptZone.style.display = 'block';
+        
+        // Trigger animation re-flow
+        const paper = document.getElementById('receiptPaper');
+        paper.style.animation = 'none';
+        paper.offsetHeight; // force reflow
+        paper.style.animation = '';
+ }
 
     function updateProgress(percentage, text, mode = 'normal') {
         const bar = document.getElementById('progressBar');
         const txt = document.getElementById('progressStage');
         const cupLiquid = document.getElementById('coffeeLiquidFill');
+        const steam = document.getElementById('steamContainer');
         
         bar.style.width = `${percentage}%`;
         cupLiquid.style.height = `${percentage}%`;
         txt.innerText = `${percentage}% — ${text}`;
         
+        // Show steam when coffee is hot enough (above 40%)
+        if (percentage > 40) {
+            steam.classList.add('visible');
+        } else {
+            steam.classList.remove('visible');
+        }
+        
         if(mode === 'error') {
             bar.style.backgroundColor = 'var(--error)';
+            steam.classList.remove('visible');
         } else {
             bar.style.backgroundColor = 'var(--accent)';
         }
@@ -1029,12 +1535,17 @@
         document.getElementById('resumeBtn').disabled = false;
     }
 
-    // Modern Multi-Device Clipboard Injector API
+    function shakeElement(el) {
+        el.classList.remove('shake-animation');
+        void el.offsetWidth; // reflow
+        el.classList.add('shake-animation');
+        setTimeout(() => el.classList.remove('shake-animation'), 400);
+    }
+
     function copyBatchIdToClipboard() {
         const copyInput = document.getElementById('batchIdDisplay');
         const btnText = document.getElementById('copyBtnText');
         
-        // Universal Platform Clipboard Execution Fallback
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(copyInput.value).then(() => {
                 uiCopySuccessNotification(btnText);
@@ -1047,8 +1558,8 @@
     }
 
     function legacyCopyFallback(inputElement, labelContainer) {
-        inputElement.select();
-        inputElement.setSelectionRange(0, 99999); // Mobile Support Target Anchor
+ inputElement.select();
+        inputElement.setSelectionRange(0, 99999);
         try {
             document.execCommand('copy');
             uiCopySuccessNotification(labelContainer);
