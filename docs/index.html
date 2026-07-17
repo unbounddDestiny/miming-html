@@ -3,75 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Cozy Brewroom • Digital Infusions</title>
-    <!-- Embedded Google Fonts for the perfect Cozy Retro Coding Vibe -->
+    <title>The Cozy Brewroom • Digital Barista</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     
     <style>
         /* ==========================================================================
-           1. COZY VARIABLES (MIDNIGHT BREW - DEFAULT DARK THEME)
+           1. CAFE NIGHT THEME (DEFAULT - Rich Espresso Lounge)
            ========================================================================== */
         :root {
-            --bg-gradient: linear-gradient(135deg, #0e0d13 0%, #171520 100%);
-            --card-bg: rgba(26, 23, 37, 0.9);
-            --card-border: 1px solid rgba(138, 114, 182, 0.15);
-            --text-main: #e2def0;
-            --text-muted: #8e87a7;
+            --bg-gradient: linear-gradient(135deg, #120f0e 0%, #1e1916 100%);
+            --card-bg: rgba(36, 30, 26, 0.95);
+            --card-border: 2px solid #3d322b;
+            --card-radius: 24px;
+            --text-main: #f3ede8;
+            --text-muted: #a8998f;
             
-            /* Lofi Tea & Coffee Accent Palette */
-            --accent-glow: rgba(224, 122, 112, 0.35);
-            --accent: #e07a70;        /* Pastel Coral Mug Warmth */
-            --accent-hover: #f08d83;
-            --accent-secondary: #8c73b0; /* Lavender Chamomile */
-            --success: #6bb098;       /* Warm Mint Green */
-            --error: #df6c75;         /* Overboiled Red */
-            --input-bg: #121019;
-            --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-            --vinyl-color: #e07a70;
-            --scanline-opacity: 0.03;
-
-            /* Log Box Specific Dark Theme */
-            --log-bg: #09080d;
-            --log-border: rgba(138, 114, 182, 0.15);
-            --log-text: #92e0c2;
+            /* Espresso Palettes */
+            --accent-glow: rgba(212, 140, 94, 0.3);
+            --accent: #d48c5e;        /* Roasted Caramel Steamer */
+            --accent-hover: #e39d71;
+            --accent-secondary: #8e6f5a; /* Smooth Hazelnut Milk */
+            --success: #8cb38a;       /* Matcha Green */
+            --error: #c96f6f;         /* Scalded Red */
+            --input-bg: #191412;
+            --shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+            --cup-porcelain: #eae0d5;
+            --coffee-liquid: #5c3d2e;
+            --btn-transform: translateY(-2px);
+            --btn-radius: 12px;
         }
 
         /* ==========================================================================
-           2. COZY VARIABLES (MORNING STEW - LIGHT THEME)
+           2. COFFEE MORNING THEME (STRUCTURAL REDESIGN - Bright Artisan Bistro)
            ========================================================================== */
         [data-theme="light"] {
-            --bg-gradient: linear-gradient(135deg, #f5f2eb 0%, #eae3d4 100%); /* Dusty warm paper & cream */
-            --card-bg: rgba(253, 251, 247, 0.95);
-            --card-border: 1px solid rgba(161, 149, 127, 0.2);
-            --text-main: #4a4135; /* Warm coffee grounds */
-            --text-muted: #8c806d; /* Muted clay pot */
+            --bg-gradient: linear-gradient(180deg, #fbfaf7 0%, #f0ede4 100%);
+            --card-bg: #ffffff;
+            --card-border: 1px solid #dcd3c7;
+            --card-radius: 12px; /* Sharper, modern clean lines for morning layout */
+            --text-main: #2b221a; /* Dark Roasted Bean */
+            --text-muted: #7a6e65; /* Milky froth text */
             
-            /* Lofi Morning Accent Palette (Sunbeams & Matcha Cafe) */
-            --accent-glow: rgba(142, 168, 144, 0.3); /* Sage matcha leaf */
-            --accent: #8ea890;        /* Soft Sage Green */
-            --accent-hover: #9fbba1;
-            --accent-secondary: #c5a880; /* Honey Stir Stick */
-            --success: #759a84;
-            --error: #cc6d66;
-            --input-bg: #faf8f5;
-            --shadow: 0 12px 30px rgba(115, 102, 85, 0.12);
-            --vinyl-color: #8ea890;
-            --scanline-opacity: 0.0;
-
-            /* Log Box Specific Light Theme */
-            --log-bg: #fdfbf7;
-            --log-border: rgba(161, 149, 127, 0.25);
-            --log-text: #5c8c72;
+            /* Sunlit Cafe Palettes */
+            --accent-glow: rgba(147, 110, 79, 0.15);
+            --accent: #936e4f;        /* Deep Cream Cinnamon */
+            --accent-hover: #7b5b40;
+            --accent-secondary: #bcab9a; 
+            --success: #5f8762;
+            --error: #b84d4d;
+            --input-bg: #f8f6f2;
+            --shadow: 0 8px 24px rgba(61, 46, 34, 0.08);
+            --cup-porcelain: #2b221a;
+            --coffee-liquid: #865439;
+            --btn-transform: scale(0.98); /* Inverted interaction texture */
+            --btn-radius: 4px; /* Completely alternative geometry architecture */
         }
 
         /* ==========================================================================
-           3. BASE STRUCTURE (FIXED SCROLL & WHITE OVERSCROLL PREVENTION)
+           3. BASE STRUCTURE & BACKGROUND CAFE ENVIRONMENT
            ========================================================================== */
         * {
             box-sizing: border-box;
-            transition: background 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         html, body {
@@ -79,7 +74,7 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            overscroll-behavior: none; /* Prevents bounce scroll revealing white background edges */
+            overscroll-behavior: none;
             background: var(--bg-gradient);
             overflow-x: hidden;
         }
@@ -91,38 +86,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
             overflow-y: auto; 
             padding: 40px 20px;
         }
 
-        /* Ambient Coaster Grooves in background */
+        /* Micro-texture Steam Overlay simulation across the cafe floor */
         body::before {
             content: '';
             position: fixed;
-            top: 50%;
-            left: 50%;
-            width: 150vw;
-            height: 150vw;
-            border: 1px solid var(--text-muted);
-            opacity: 0.02;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 10% 20%, rgba(212,140,94,0.03) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(142,111,90,0.03) 0%, transparent 40%);
             pointer-events: none;
             z-index: 0;
-        }
-
-        /* Retro Cabin Scanlines overlay */
-        body::after {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 255, 0, 0.03));
-            background-size: 100% 4px, 6px 100%;
-            opacity: var(--scanline-opacity);
-            pointer-events: none;
-            z-index: 9999;
         }
 
         .container {
@@ -130,77 +106,78 @@
             max-width: 650px;
             background: var(--card-bg);
             border: var(--card-border);
-            padding: 35px;
-            border-radius: 20px;
+            padding: 40px;
+            border-radius: var(--card-radius);
             box-shadow: var(--shadow);
-            backdrop-filter: blur(8px);
             position: relative;
             z-index: 10;
-            margin: auto; 
+            margin: auto;
         }
 
         /* ==========================================================================
-           4. FLOATING HEADER & CONTROLS
+           4. ROASTERY HEADER AREA
            ========================================================================== */
         .header-area {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--card-border);
-            padding-bottom: 20px;
-            margin-bottom: 25px;
+            border-bottom: 2px dashed var(--card-border);
+            padding-bottom: 25px;
+            margin-bottom: 30px;
         }
 
         h1 {
             margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 800;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .lofi-icon {
-            font-size: 26px;
-            animation: pulse-slow 3s infinite ease-in-out;
+        .barista-icon {
+            font-size: 32px;
+            animation: coffee-float 4s infinite ease-in-out;
+            display: inline-block;
         }
 
-        /* Theme Toggle & Cozy Sounds UI */
         .theme-control {
             display: flex;
             gap: 10px;
         }
 
+        /* Structural Button Mutation between themes */
         .btn-round {
             background: var(--input-bg);
             border: var(--card-border);
             color: var(--text-main);
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
+            width: 46px;
+            height: 46px;
+            border-radius: var(--btn-radius);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: bold;
         }
         .btn-round:hover {
             border-color: var(--accent);
-            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--accent-glow);
         }
 
         /* ==========================================================================
-           5. TAB INTERFACES & CUSTOM LAYOUTS
+           5. BREW MENU SELECTION TABS
            ========================================================================== */
         .tabs {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             background: var(--input-bg);
-            padding: 6px;
-            border-radius: 12px;
+            padding: 8px;
+            border-radius: calc(var(--btn-radius) + 4px);
             margin-bottom: 30px;
-            border: var(--card-border);
+            border: 1px solid var(--card-border);
         }
 
         .tab-btn {
@@ -208,23 +185,25 @@
             background: transparent;
             color: var(--text-muted);
             border: none;
-            padding: 12px;
+            padding: 14px;
             font-size: 14px;
             font-family: 'Quicksand', sans-serif;
             font-weight: 700;
             cursor: pointer;
-            border-radius: 8px;
+            border-radius: var(--btn-radius);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 4px;
         }
 
         .tab-btn span.label-main {
-            font-size: 14px;
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            font-weight: 600;
         }
         .tab-btn span.label-desc {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 500;
             opacity: 0.7;
         }
@@ -232,7 +211,8 @@
         .tab-btn.active {
             background: var(--card-bg);
             color: var(--accent);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
         }
 
         .tab-content {
@@ -246,7 +226,7 @@
         }
 
         /* ==========================================================================
-           6. FORM ELEMENTS
+           6. HOUSE INGREDIENTS CONFIGURE INPUTS
            ========================================================================== */
         .form-group {
             display: flex;
@@ -255,11 +235,11 @@
         }
 
         label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -267,10 +247,10 @@
 
         input, select, textarea {
             background: var(--input-bg);
-            border: var(--card-border);
-            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--btn-radius);
             color: var(--text-main);
-            padding: 14px;
+            padding: 16px;
             font-size: 14px;
             font-family: 'Quicksand', sans-serif;
             width: 100%;
@@ -279,22 +259,21 @@
 
         input:focus, select:focus, textarea:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-glow);
+            box-shadow: 0 0 0 4px var(--accent-glow);
         }
 
         textarea {
-            height: 180px;
+            height: 160px;
             font-family: 'Fira Code', monospace;
             line-height: 1.6;
             resize: none;
         }
 
-        /* Cozy Quick Instructions block */
         .cozy-guide {
-            background: rgba(var(--accent-glow), 0.03);
-            border-left: 3px solid var(--accent-secondary);
-            padding: 15px;
-            border-radius: 0 12px 12px 0;
+            background: rgba(142, 111, 90, 0.08);
+            border-left: 4px solid var(--accent);
+            padding: 18px;
+            border-radius: calc(var(--btn-radius) / 2);
             font-size: 13px;
             line-height: 1.6;
             color: var(--text-muted);
@@ -302,20 +281,20 @@
 
         .cozy-guide strong {
             color: var(--text-main);
+            font-family: 'Playfair Display', serif;
         }
 
         /* ==========================================================================
-           6B. COZY POT CAPTCHA UI
+           7. INTERACTIVE COFFEE GRINDER CAPTCHA SYSTEM
            ========================================================================== */
         .lofi-captcha-container {
             background: var(--input-bg);
-            border: var(--card-border);
-            padding: 18px;
-            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            padding: 20px;
+            border-radius: var(--btn-radius);
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-top: 5px;
+            gap: 14px;
         }
 
         .captcha-header-wrapper {
@@ -328,238 +307,281 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(0, 0, 0, 0.15);
-            padding: 8px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.02);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: var(--btn-radius);
+            width: 100%;
+        }
+
+        [data-theme="light"] .captcha-visual-pane {
+            background: rgba(0, 0, 0, 0.04);
         }
 
         #captchaCanvas {
-            border-radius: 8px;
-            background: #15131f; 
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: calc(var(--btn-radius) - 4px);
+            background: #1e1916; 
+            border: 1px solid var(--card-border);
+            flex-grow: 1;
         }
 
-        /* Dynamic matching variables during light theme shift */
         [data-theme="light"] #captchaCanvas {
-            background: #e6e2d8 !important;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: #fbfaf7 !important;
         }
 
         .btn-captcha-refresh {
-            width: 36px;
-            height: 36px;
-            font-size: 14px;
-        }
-
-        .captcha-input-row {
-            display: flex;
-            gap: 10px;
+            width: 44px;
+            height: 44px;
+            font-size: 16px;
+            flex-shrink: 0;
         }
 
         .captcha-input-row input {
             font-family: 'Fira Code', monospace;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
             text-transform: uppercase;
             font-weight: 600;
             text-align: center;
         }
 
         /* ==========================================================================
-           7. BUTTONS & COFFEE FILLING LOADING SYSTEM
+           8. MASTER BUTTON ARCHITECTURE
            ========================================================================== */
         .action-button {
             background: var(--accent);
             color: #fff;
             border: none;
-            padding: 16px 24px;
-            font-size: 15px;
-            font-family: 'Quicksand', sans-serif;
+            padding: 18px 28px;
+            font-size: 16px;
+            font-family: 'Playfair Display', serif;
             font-weight: 700;
-            border-radius: 12px;
+            border-radius: var(--btn-radius);
             cursor: pointer;
             width: 100%;
-            box-shadow: 0 4px 15px var(--accent-glow);
+            box-shadow: 0 6px 20px var(--accent-glow);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .action-button:hover:not(:disabled) {
             background: var(--accent-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px var(--accent-glow);
+            transform: var(--btn-transform);
         }
 
         .action-button:disabled {
-            background: var(--text-muted);
+            background: var(--accent-secondary);
             cursor: not-allowed;
             box-shadow: none;
-            opacity: 0.6;
+            opacity: 0.5;
         }
 
-        /* Kettle Active Audio Simulation Loader */
+        /* ==========================================================================
+           9. PHYSICAL COFFEE CUP GAUGE (LIQUID PROGRESS ACCELERATOR)
+           ========================================================================== */
         .progress-container {
-            margin-top: 30px;
+            margin-top: 35px;
             display: none;
             background: var(--input-bg);
-            border: var(--card-border);
+            border: 1px solid var(--card-border);
             padding: 24px;
-            border-radius: 16px;
+            border-radius: var(--btn-radius);
         }
 
         .progress-layout {
             display: flex;
             align-items: center;
-            gap: 24px;
+            gap: 25px;
         }
 
-        /* Custom Interactive Cozy SVG Mug Wrapper */
-        .mug-wrapper {
+        /* CSS Engineered Barista Mug Container */
+        .coffee-cup-mug {
             position: relative;
             width: 60px;
-            height: 60px;
+            height: 50px;
+            background: var(--cup-porcelain);
+            border-radius: 0 0 24px 24px;
             flex-shrink: 0;
+            border: 3px solid var(--text-muted);
+            overflow: hidden;
         }
 
-        .mug-svg {
-            width: 100%;
-            height: 100%;
+        /* Mug Handle Attachment */
+        .coffee-cup-mug::after {
+            content: '';
+            position: absolute;
+            top: 8px; right: -15px;
+            width: 18px; height: 24px;
+            border: 3px solid var(--text-muted);
+            border-radius: 0 12px 12px 0;
+            background: transparent;
+            left: auto;
         }
 
-        /* Fluid Fill Animation Layer */
-        .mug-fluid {
-            transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        /* Liquid Mass Layer Elements */
+        .coffee-liquid-fill {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            height: 0%; /* Dynamic fill hook */
+            background: var(--coffee-liquid);
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dynamic Froth Layer */
+        .coffee-froth-head {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 6px;
+            background: #e6ccb2;
+            opacity: 0.85;
         }
 
         .progress-details {
             flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
         }
 
         .stage-title {
             font-size: 14px;
             font-weight: 700;
+            margin-bottom: 8px;
+            font-family: 'Playfair Display', serif;
         }
 
         .progress-bar-wrapper {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.08);
+            height: 8px;
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 100px;
             overflow: hidden;
-            display: none; /* Hidden now that the Coffee Cup represents the filling bar */
+        }
+
+        [data-theme="light"] .progress-bar-wrapper {
+            background: rgba(0, 0, 0, 0.06);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            border-radius: 100px;
         }
 
         /* ==========================================================================
-           7B. THE COZY BREW-ID SHIELD AND ACTION LABELS
+           10. COLLAPSIBLE LEDGER SHELF & CONSOLE LOGS
            ========================================================================== */
-        .id-badge-container {
-            display: none; /* Appears when tracking starts */
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.03);
-            border: var(--card-border);
-            padding: 10px 14px;
-            border-radius: 10px;
-            margin-top: 15px;
-            gap: 10px;
+        .ledger-collapsible {
+            margin-top: 25px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--btn-radius);
+            overflow: hidden;
+            display: none;
         }
 
-        .id-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-        }
-
-        .id-value {
-            font-family: 'Fira Code', monospace;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        .copy-btn {
+        .ledger-trigger {
             background: var(--input-bg);
-            border: var(--card-border);
-            color: var(--text-main);
-            border-radius: 8px;
-            padding: 5px 10px;
-            font-size: 11px;
-            font-family: 'Quicksand', sans-serif;
+            padding: 14px 20px;
+            font-size: 13px;
             font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .copy-btn:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        /* ==========================================================================
-           8. BREWROOM COLLAPSIBLE retro terminal
-           ========================================================================== */
-        .terminal-toggle-btn {
-            background: transparent;
-            border: none;
             color: var(--text-muted);
-            font-family: 'Quicksand', sans-serif;
-            font-size: 12px;
-            font-weight: 700;
             cursor: pointer;
-            text-decoration: underline;
-            padding: 5px 0;
-            text-align: left;
-            margin-top: 15px;
-            display: none; /* Appears alongside progress */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
         }
 
-        .terminal-toggle-btn:hover {
-            color: var(--accent);
+        .ledger-trigger::after {
+            content: '▼';
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+
+        .ledger-collapsible.open .ledger-trigger::after {
+            transform: rotate(180deg);
         }
 
         .log-box {
-            background: var(--log-bg);
-            border: 1px solid var(--log-border);
+            background: #0d0b0a;
             font-family: 'Fira Code', monospace;
-            padding: 15px;
-            border-radius: 12px;
-            height: 150px;
+            padding: 20px;
+            height: 160px;
             overflow-y: auto;
-            margin-top: 12px;
             font-size: 11px;
-            line-height: 1.6;
-            color: var(--log-text);
-            display: none; /* Toggled manually */
-            animation: fade-in 0.3s ease-out;
+            line-height: 1.7;
+            color: #d1bda7;
+            border-top: 1px solid var(--card-border);
+            display: none; /* Controlled via ledger-collapsible deployment block */
         }
 
+        .ledger-collapsible.open .log-box {
+            display: block;
+        }
+
+        /* ==========================================================================
+           11. CARAMEL COUNTER ARRIVAL ZONE & RUN ID TOOLKIT
+           ========================================================================== */
         .download-zone {
-            margin-top: 30px;
-            background: rgba(107, 176, 152, 0.08);
-            border: 1px dashed var(--success);
-            padding: 24px;
-            border-radius: 16px;
+            margin-top: 35px;
+            background: rgba(140, 179, 138, 0.08);
+            border: 2px dashed var(--success);
+            padding: 30px;
+            border-radius: var(--card-radius);
             text-align: center;
             display: none;
-            animation: fade-in 0.5s ease-out;
+            animation: pour-pour 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .download-zone h3 {
             margin: 0 0 10px 0;
-            font-size: 18px;
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
             color: var(--success);
         }
 
         .download-zone p {
-            margin: 0 0 20px 0;
-            font-size: 13px;
+            margin: 0 0 25px 0;
+            font-size: 14px;
             color: var(--text-muted);
+        }
+
+        /* Multi-Device Universal Copier Platform */
+        .run-id-clipboard-wrapper {
+            display: flex;
+            max-width: 320px;
+            margin: 0 auto 25px auto;
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--btn-radius);
+            overflow: hidden;
+        }
+
+        .run-id-display-field {
+            flex-grow: 1;
+            padding: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            color: var(--accent);
+            text-align: center;
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+        }
+
+        .btn-clipboard-copy {
+            background: var(--card-border);
+            color: var(--text-main);
+            border: none;
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-clipboard-copy:active {
+            background: var(--accent);
+            color: #fff;
         }
 
         .download-btn {
@@ -567,206 +589,167 @@
             color: white;
             text-decoration: none;
             display: inline-block;
-            padding: 14px 28px;
-            border-radius: 12px;
+            padding: 16px 32px;
+            border-radius: var(--btn-radius);
+            font-family: 'Playfair Display', serif;
             font-weight: 700;
-            font-size: 15px;
-            transition: background 0.2s, transform 0.1s;
+            font-size: 16px;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(107, 176, 152, 0.3);
+            box-shadow: 0 6px 20px rgba(140, 179, 138, 0.3);
         }
         .download-btn:hover {
-            background: #79c3ab;
-            transform: scale(1.02);
+            background: #9bc299;
+            transform: var(--btn-transform);
         }
 
         /* ==========================================================================
-           9. CUSTOM UTILITY ANIMATIONS
+           12. UTILITY ANIMATIONS
            ========================================================================== */
-        @keyframes spin {
-            100% { transform: rotate(360deg); }
+        @keyframes coffee-float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(8deg); }
         }
-        @keyframes pulse-slow {
-            0%, 100% { opacity: 0.6; transform: scale(0.96); }
-            50% { opacity: 1; transform: scale(1.04); }
-        }
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes pour-pour {
+            from { opacity: 0; transform: scale(0.95) translateY(15px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Header Controls -->
     <div class="header-area">
-        <h1><span class="lofi-icon">☕</span> The Cozy Brewroom</h1>
+        <h1><span class="barista-icon">☕</span> The Cozy Brewroom</h1>
         <div class="theme-control">
-            <!-- Theme Changer -->
-            <button class="btn-round" id="themeToggler" onclick="toggleTheme()" title="Toggle Cozy Light/Dark Palette">
+            <button class="btn-round" id="themeToggler" onclick="toggleTheme()" title="Toggle Café Shift Palette">
                 🌙
             </button>
         </div>
     </div>
 
-    <!-- Cozy Dynamic Nav Tabs -->
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('archive-tab', this)">
-            <span class="label-main">🍵 Steep Blend</span>
-            <span class="label-desc">New infusion queue</span>
+            <span class="label-main">🫗 Fresh Extraction</span>
+            <span class="label-desc">Drop new background roast</span>
         </button>
         <button class="tab-btn" onclick="switchTab('resume-tab', this)">
-            <span class="label-main">🍯 Pour & Go</span>
-            <span class="label-desc">Reconnect with Brew ID</span>
+            <span class="label-main">🫙 Saved Carafe</span>
+            <span class="label-desc">Re-hook with Batch ID</span>
         </button>
     </div>
     
-    <!-- Config Input Area -->
     <div class="form-layout">
-        <!-- Persistent Security Lock -->
         <div class="form-group">
-            <label for="passkeyInput">🔑 Private Tavern Key</label>
-            <input type="password" id="passkeyInput" placeholder="Enter your secret tavern key to unlock the pantry...">
+            <label for="passkeyInput">🔑 Master Barista Passkey</label>
+            <input type="password" id="passkeyInput" placeholder="Enter house secret key to ignite coffee gridlines...">
         </div>
 
-        <!-- TAB 1: Main Process -->
         <div id="archive-tab" class="tab-content active">
             <div class="cozy-guide">
-                <strong>How to Brew:</strong> Paste your recipe URLs below (one per line). Hit run, listen to the crackling fire, and copy your unique <strong>Brew ID</strong> from the kitchen log so you can fetch your jar later!
+                <strong>Brewing Orders:</strong> Input destination URLs below (one per single line container). Spark extraction, rest while our machines steam assets, and keep note of the unique <strong>Batch ID</strong> generated on the ledger below to pull up your thermos flask at a later shift!
             </div>
 
             <div class="form-group">
-                <label for="urlInput">📌 Recipe URLs (One per line)</label>
-                <textarea id="urlInput" placeholder="https://example.com&#10;https://lofi-vibes.fm"></textarea>
+                <label for="urlInput">📋 Target Extraction Grounds (One URL per line)</label>
+                <textarea id="urlInput" placeholder="https://example.com&#10;https://artisan-roastery-vibes.com"></textarea>
             </div>
 
             <div class="form-group">
-                <label for="renderJs">🏺 Boiling Engine</label>
+                <label for="renderJs">⚙️ Filtration Matrix Kettle</label>
                 <select id="renderJs">
-                    <option value="true">Headless Kettle (Stir interactive JavaScript scripts)</option>
-                    <option value="false">Static Infusion (Classic, swift herbal brew)</option>
+                    <option value="true">Pressurized Vapor (Headless Chrome for Dynamic Scripts)</option>
+                    <option value="false">Static Drip (Raw HTML Fetch — Hyper Light & Direct)</option>
                 </select>
             </div>
 
-            <!-- Integrated Custom Audio Wave Captcha Component -->
             <div class="form-group">
-                <label>📻 Human Steam Check</label>
+                <label>🌾 Human Mill Consistency Check</label>
                 <div class="lofi-captcha-container">
                     <div class="captcha-header-wrapper">
                         <div class="captcha-visual-pane">
                             <canvas id="captchaCanvas" width="160" height="50"></canvas>
-                            <button type="button" class="btn-round btn-captcha-refresh" onclick="generateCaptcha()" title="Change Steam Frequency (Refresh)">🔄</button>
+                            <button type="button" class="btn-round btn-captcha-refresh" onclick="generateCaptcha()" title="Recalibrate Grinder Settings (Refresh)">🔄</button>
                         </div>
                     </div>
                     <div class="captcha-input-row">
-                        <input type="text" id="captchaInput" autocomplete="off" placeholder="Type steaming text...">
+                        <input type="text" id="captchaInput" autocomplete="off" placeholder="Align matching ground metrics...">
                     </div>
                 </div>
             </div>
             
             <button class="action-button" id="actionBtn" onclick="startProcess()">
-                <span>🔥 Begin Infusion</span>
+                <span>🔥 Activate Burners & Extract</span>
             </button>
         </div>
 
-        <!-- TAB 2: Resume Check Tool -->
         <div id="resume-tab" class="tab-content">
             <div class="cozy-guide">
-                <strong>Pour & Go:</strong> Have an active Brew ID from earlier? Feed it below, and we'll check the pantry racks to see if your fresh batch of pages is bottled and ready for pickup.
+                <strong>Carafe Re-Hook:</strong> Have an extraction batch cataloged on a previous shift? Drop the numerical tag here and we will look into our repositories to check if your thermos package is fully chilled and boxed.
             </div>
 
             <div class="form-group">
-                <label for="runIdInput">🏺 Cozy Brew ID</label>
+                <label for="runIdInput">🏷️ Cataloged Batch ID</label>
                 <input type="text" id="runIdInput" placeholder="e.g. 9876543210">
             </div>
             
             <button class="action-button" id="resumeBtn" onclick="resumeRunTracking()">
-                <span>🧉 Check Pantry Shelf</span>
+                <span>🔌 Hook Into Active Carafe Line</span>
             </button>
         </div>
     </div>
 
-    <!-- Cozy Coffee Mug Interactive Progress Loader -->
     <div class="progress-container" id="progressContainer">
         <div class="progress-layout">
-            <div class="mug-wrapper" id="mugWrapper">
-                <!-- Inline SVG Coffee Cup with dynamic mask fill -->
-                <svg class="mug-svg" viewBox="0 0 100 100">
-                    <defs>
-                        <!-- Clipping path matching inside cup walls -->
-                        <clipPath id="mugInnerClip">
-                            <path d="M 25,30 L 75,30 L 70,85 A 15,15 0 0,1 55,95 L 45,95 A 15,15 0 0,1 30,85 Z" />
-                        </clipPath>
-                    </defs>
-                    <!-- Handle -->
-                    <path d="M 72,40 C 88,40 88,70 71,70" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" style="opacity: 0.85;" />
-                    <!-- Mug Outer Body Wall -->
-                    <path d="M 25,30 L 75,30 L 70,85 A 15,15 0 0,1 55,95 L 45,95 A 15,15 0 0,1 30,85 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round" style="opacity: 0.85;" />
-                    <!-- Masked Liquid Layer -->
-                    <g clip-path="url(#mugInnerClip)">
-                        <!-- Adjust Y attribute to move fluid level (100 is empty, 30 is full) -->
-                        <rect id="mugLiquid" class="mug-fluid" x="0" y="100" width="100" height="100" fill="var(--accent)" />
-                    </g>
-                </svg>
+            <div class="coffee-cup-mug">
+                <div class="coffee-liquid-fill" id="coffeeLiquidFill">
+                    <div class="coffee-froth-head"></div>
+                </div>
             </div>
             <div class="progress-details">
-                <div class="stage-title" id="progressStage">Kettle heating up...</div>
+                <div class="stage-title" id="progressStage">Kettle cold...</div>
                 <div class="progress-bar-wrapper">
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
-                <!-- Dynamic Brew ID Output Shield with Universal Clipboard Trigger -->
-                <div class="id-badge-container" id="idBadgeContainer">
-                    <span class="id-label">🏺 Brew ID:</span>
-                    <span class="id-value" id="badgeRunId">--------</span>
-                    <button class="copy-btn" id="copyBadgeBtn" onclick="copyBrewId()">Copy</button>
-                </div>
             </div>
         </div>
-        
-        <!-- Toggle details button to drop down raw log terminal -->
-        <button class="terminal-toggle-btn" id="terminalToggle" onclick="toggleConsoleLog()">Inspect Brew Log ⚙️</button>
-        <!-- Embedded Hidden Terminal Outputs -->
+    </div>
+
+    <div class="ledger-collapsible" id="ledgerCollapsible">
+        <div class="ledger-trigger" onclick="toggleLedger()">
+            <span>📋 Inspect Barista Extract Logs</span>
+        </div>
         <div class="log-box" id="logBox"></div>
     </div>
 
-    <!-- Cozy Snapshot Arrival Card -->
     <div class="download-zone" id="downloadZone">
-        <h3>🎉 Infusion Bottled!</h3>
-        <p>Your webpage ingredients have been successfully boiled, strained, and packaged into a neat ZIP thermos.</p>
-        <button class="download-btn" id="dlBtn">Take Your Warm Thermos (ZIP)</button>
+        <h3>🎉 Extraction Complete! Roasted Fresh.</h3>
+        <p>Your web pages have been captured, pressed, and sealed into an insulated archive bundle.</p>
+        
+        <div class="run-id-clipboard-wrapper">
+            <input type="text" class="run-id-display-field" id="batchIdDisplay" readonly value="Batch ID: #00000">
+            <button type="button" class="btn-clipboard-copy" id="copyBtn" onclick="copyBatchIdToClipboard()">
+                <span id="copyBtnText">📋 Copy ID</span>
+            </button>
+        </div>
+
+        <button class="download-btn" id="dlBtn">Claim Roasted ZIP Package</button>
     </div>
 </div>
 
 <script>
     let pollInterval = null;
     let currentCaptchaCode = "";
+    let activeGlobalBatchId = "";
 
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
 
-    // Setup: Initialize correct theme according to browser context and start captcha
     window.addEventListener('DOMContentLoaded', () => {
-        applySystemThemePreference();
         generateCaptcha();
     });
 
-    // Detect browser/OS light vs dark preferences
-    function applySystemThemePreference() {
-        const toggler = document.getElementById('themeToggler');
-        const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-        
-        if (systemPrefersLight) {
-            document.documentElement.setAttribute('data-theme', 'light');
-            toggler.innerText = '☀️';
-        } else {
-            document.documentElement.removeAttribute('data-theme');
-            toggler.innerText = '🌙';
-        }
-    }
-
-    // Theme Switch Logic with CSS variable swaps
+    // Structural Component Alternative Styling Swaps
     function toggleTheme() {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const toggler = document.getElementById('themeToggler');
@@ -777,67 +760,64 @@
             document.documentElement.setAttribute('data-theme', 'light');
             toggler.innerText = '☀️';
         }
-        // Regenerate to dynamically inherit colors perfectly
         generateCaptcha();
     }
 
-    /* ==========================================================================
-        DYNAMIC THEMED CANVAS CAPTCHA CREATOR ENGINE
-       ========================================================================== */
+    function toggleLedger() {
+        const ledger = document.getElementById('ledgerCollapsible');
+        ledger.classList.toggle('open');
+    }
+
     function generateCaptcha() {
         const canvas = document.getElementById('captchaCanvas');
         const ctx = canvas.getContext('2d');
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Readable characters
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let code = '';
         
         for (let i = 0; i < 5; i++) {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         currentCaptchaCode = code;
-
-        // Reset input UI element
         document.getElementById('captchaInput').value = "";
 
-        // Read current computed variables to color match UI
         const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-        const textColor = isLight ? '#4a4135' : '#e2def0';
-        const lineWaveColor = isLight ? '#8ea890' : '#e07a70';
+        const textColor = isLight ? '#2b221a' : '#f3ede8';
+        const gridColor = isLight ? 'rgba(43,34,26,0.05)' : 'rgba(243,237,232,0.04)';
+        const lineWaveColor = isLight ? '#936e4f' : '#d48c5e';
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Render Retro Background grid lines
-        ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)';
+        // Grid Elements
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 10) {
+        for (let i = 0; i < canvas.width; i += 12) {
             ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
         }
-        for (let i = 0; i < canvas.height; i += 10) {
+        for (let i = 0; i < canvas.height; i += 12) {
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
         }
 
-        // Draw distorted hot "steam waves" (Interference Lines)
+        // Interference "Vapor Steam Clouds" Lines
         ctx.strokeStyle = lineWaveColor;
         ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = 0.3;
         ctx.beginPath();
         ctx.moveTo(0, canvas.height / 2);
         for (let x = 0; x < canvas.width; x++) {
-            let y = (canvas.height / 2) + Math.sin(x * 0.05) * 8 + Math.cos(x * 0.1) * 4;
+            let y = (canvas.height / 2) + Math.sin(x * 0.06) * 6 + Math.cos(x * 0.12) * 5;
             ctx.lineTo(x, y);
         }
         ctx.stroke();
 
         ctx.globalAlpha = 1.0;
-        // Text configuration
-        ctx.font = "bold 22px 'Fira Code', monospace";
+        ctx.font = "bold 20px 'Fira Code', monospace";
         ctx.textBaseline = "middle";
 
-        // Render each code token with random distortion offsets
         for (let i = 0; i < code.length; i++) {
             ctx.save();
-            let xOffset = 18 + (i * 26) + (Math.random() * 6 - 3);
+            let xOffset = 18 + (i * 26) + (Math.random() * 4 - 2);
             let yOffset = (canvas.height / 2) + (Math.random() * 8 - 4);
-            let rotation = (Math.random() * 0.3) - 0.15;
+            let rotation = (Math.random() * 0.2) - 0.1;
 
             ctx.translate(xOffset, yOffset);
             ctx.rotate(rotation);
@@ -850,175 +830,242 @@
     function switchTab(tabId, el) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        
         document.getElementById(tabId).classList.add('active');
         el.classList.add('active');
     }
 
-    function getCustomSecretKey() {
-        return document.getElementById('passkeyInput').value.trim();
-    }
-
     function appendLog(text, type = 'info') {
+        document.getElementById('ledgerCollapsible').style.display = 'block';
         const logBox = document.getElementById('logBox');
-        let color = 'var(--log-text)'; 
-        if (type === 'error') color = '#df6c75';
-        if (type === 'warn') color = '#e9c46a';
+        let color = '#d1bda7'; 
+        if (type === 'error') color = '#c96f6f';
+        if (type === 'warn') color = '#e0b384';
         logBox.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}</span><br>`;
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    // Toggle Retro Log Console Panel visibility
-    function toggleConsoleLog() {
-        const logBox = document.getElementById('logBox');
-        const toggleBtn = document.getElementById('terminalToggle');
-        if (logBox.style.display === 'block') {
-            logBox.style.display = 'none';
-            toggleBtn.innerText = 'Inspect Brew Log ⚙️';
-        } else {
-            logBox.style.display = 'block';
-            toggleBtn.innerText = 'Collapse Brew Log ⚙️';
-            logBox.scrollTop = logBox.scrollHeight;
-        }
-    }
-
-    // Visual updates for mug fill & progress text
-    function updateProgress(percentage, text) {
-        // Linear scale conversion for SVG height mask (100 = empty, 30 = full)
-        const mugFluid = document.getElementById('mugLiquid');
-        if (mugFluid) {
-            const yVal = 100 - (percentage * 0.7);
-            mugFluid.setAttribute('y', yVal);
-        }
-        const stageTitle = document.getElementById('progressStage');
-        if (stageTitle) stageTitle.innerText = text;
-    }
-
-    function copyBrewId() {
-        const val = document.getElementById('badgeRunId').innerText;
-        navigator.clipboard.writeText(val);
-        const btn = document.getElementById('copyBadgeBtn');
-        btn.innerText = "Copied!";
-        setTimeout(() => { btn.innerText = "Copy"; }, 2000);
-    }
-
     async function startProcess() {
-        const passkey = getCustomSecretKey();
-        const urls = document.getElementById('urlInput').value.trim();
-        const renderJs = document.getElementById('renderJs').value === 'true';
-        const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
+        const customSecretKey = document.getElementById('passkeyInput').value.trim();
+        const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+        const userCaptchaValue = document.getElementById('captchaInput').value.trim().toUpperCase();
 
-        if (captchaInput !== currentCaptchaCode) {
-            alert("🔒 Captcha incorrect! Please check the steaming frequency again.");
+        if (!customSecretKey || rawUrls.length === 0) {
+            alert('Pour your master passkey and drop target bean sites to initialize!');
+            return;
+        }
+
+        if (userCaptchaValue !== currentCaptchaCode) {
+            alert('Grinder alignment check mismatch. Please verify the mill code!');
             generateCaptcha();
             return;
         }
 
-        if (!urls) {
-            alert("📌 Please provide at least one recipe URL.");
-            return;
-        }
-
-        document.getElementById('progressContainer').style.display = 'block';
-        document.getElementById('terminalToggle').style.display = 'block';
+        document.getElementById('actionBtn').disabled = true;
         document.getElementById('downloadZone').style.display = 'none';
+        document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('logBox').innerHTML = '';
         
-        appendLog("Initializing new infusion batch...");
-        updateProgress(10, "Kettle heating up...");
+        updateProgress(5, "Lighting under-kettle fire lines...");
+        appendLog("Forwarding extraction security token to roastery server arrays...");
 
         try {
-            const res = await fetch(`${BACKEND_URL}/start`, {
+            const backendRes = await fetch(BACKEND_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ passkey, urls, renderJs, repository: REPO })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Custom-Auth': customSecretKey
+                },
+                body: JSON.stringify({
+                    urls: rawUrls,
+                    renderJs: document.getElementById('renderJs').value
+                })
             });
-            const data = await res.json();
-            
-            if (!res.ok || data.error) {
-                throw new Error(data.error || "Server rejection during preparation");
-            }
 
-            const runId = data.runId;
-            document.getElementById('idBadgeContainer').style.display = 'flex';
-            document.getElementById('badgeRunId').innerText = runId;
-            appendLog(`Brew ID allocated successfully: ${runId}`);
+            const data = await backendRes.json();
+            if (!backendRes.ok) throw new Error(data.error || "The main pipeline heaters blew out.");
+
+            appendLog("Access cleared. Automated server kettles initiated tracking sequences.");
+            updateProgress(15, "Warming filter nodes... (Waiting for active runner)");
             
-            startPolling(runId);
-        } catch (err) {
-            appendLog(`Error: ${err.message}`, 'error');
-            updateProgress(0, "Infusion failed");
+            setTimeout(() => trackWorkflowRun(), 10000);
+
+        } catch (error) {
+            appendLog(`Extraction Interrupted: ${error.message}`, 'error');
+            resetUI();
+            generateCaptcha();
         }
     }
 
-    function resumeRunTracking() {
+    async function trackWorkflowRun() {
+        try {
+            appendLog("Sifting database logs to match current catalog tracking index...");
+            const response = await fetch(`${BACKEND_URL}?action=track`, {
+                method: 'GET',
+                headers: { 'X-Custom-Auth': document.getElementById('passkeyInput').value.trim() }
+            });
+            const data = await response.json();
+            
+            if (!response.ok) throw new Error(data.error || "Failed to handshake tracking server.");
+            if (!data.runId) throw new Error("No roasting beans registered. Restart extraction.");
+
+            appendLog(`CATALOG MATCH -> Batch Registered ID: #${data.runId}`);
+            startPolling(data.runId);
+
+        } catch (err) {
+            appendLog(`Registry tracking fault: ${err.message}`, 'error');
+            resetUI();
+        }
+    }
+
+    async function resumeRunTracking() {
+        const customSecretKey = document.getElementById('passkeyInput').value.trim();
         const runId = document.getElementById('runIdInput').value.trim();
-        if (!runId) {
-            alert("🏺 Please provide a valid Brew ID.");
+
+        if (!customSecretKey || !runId) {
+            alert('Please supply both your Passkey and targeted Batch ID!');
             return;
         }
-        document.getElementById('progressContainer').style.display = 'block';
-        document.getElementById('terminalToggle').style.display = 'block';
+
+        document.getElementById('resumeBtn').disabled = true;
         document.getElementById('downloadZone').style.display = 'none';
-        
-        document.getElementById('idBadgeContainer').style.display = 'flex';
-        document.getElementById('badgeRunId').innerText = runId;
-        
-        appendLog(`Reconnecting to active session: ${runId}`);
+        document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('logBox').innerHTML = '';
+
+        appendLog(`Plugging gauge wires onto Carafe Batch Element: #${runId}...`);
+        updateProgress(10, "Sensing line pressure currents...");
+
         startPolling(runId);
     }
 
     function startPolling(runId) {
         if (pollInterval) clearInterval(pollInterval);
-        
-        pollInterval = setInterval(async () => {
-            try {
-                const res = await fetch(`${BACKEND_URL}/status?runId=${runId}`);
-                const data = await res.json();
-                
-                if (!res.ok || data.error) {
-                    clearInterval(pollInterval);
-                    throw new Error(data.error || "Status inquiry failed");
-                }
-                
-                if (data.logs && data.logs.length) {
-                    document.getElementById('logBox').innerHTML = "";
-                    data.logs.forEach(log => appendLog(log.message || log, log.type || 'info'));
-                }
-                
-                if (data.progress) {
-                    updateProgress(data.progress, data.stage || "Infusion simmering...");
-                }
-                
-                if (data.status === 'completed') {
-                    clearInterval(pollInterval);
-                    updateProgress(100, "Infusion complete!");
-                    appendLog("Batch packaged and moved to pick-up shelf.");
-                    
-                    const dlZone = document.getElementById('downloadZone');
-                    const dlBtn = document.getElementById('dlBtn');
-                    
-                    // Directly sets download link and file name parameters fetched from backend payload
-                    dlBtn.onclick = () => {
-                        const link = document.createElement('a');
-                        link.href = data.downloadUrl;
-                        link.download = data.downloadName || data.fileName || 'infusion.zip';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    };
-                    
-                    dlZone.style.display = 'block';
-                } else if (data.status === 'failed') {
-                    clearInterval(pollInterval);
-                    updateProgress(0, "Brew spoiled");
-                    appendLog("Infusion failed during execution.", 'error');
-                }
-            } catch (err) {
+        activeGlobalBatchId = runId;
+        document.getElementById('batchIdDisplay').value = `${runId}`;
+        checkStatus(runId);
+        pollInterval = setInterval(() => checkStatus(runId), 7000);
+    }
+
+    async function checkStatus(runId) {
+        try {
+            const response = await fetch(`${BACKEND_URL}?runId=${runId}`, {
+                method: 'GET',
+                headers: { 'X-Custom-Auth': document.getElementById('passkeyInput').value.trim() }
+            });
+            const runInfo = await response.json();
+            if (!response.ok) throw new Error(runInfo.error || "Status check drop.");
+            
+            const status = runInfo.status; 
+            const conclusion = runInfo.conclusion; 
+
+            appendLog(`Extraction pulse update: [${status}]`);
+
+            if (status === "queued") {
+                updateProgress(30, "Beans positioned on funnel ring... (Queued)");
+            } else if (status === "in_progress") {
+                updateProgress(60, "Hot liquid rushing through grounds... (Extracting)");
+            } else if (status === "completed") {
                 clearInterval(pollInterval);
-                appendLog(`Polling Error: ${err.message}`, 'error');
+                if (conclusion === "success") {
+                    updateProgress(90, "Drip process concluded! Boxing hot thermos container...");
+                    await locateAndLinkArtifact(runId);
+                } else {
+                    updateProgress(100, `Heater short-circuit: ${conclusion}`, 'error');
+                    resetUI();
+                }
             }
-        }, 3000);
+        } catch (err) {
+            appendLog(`Steam pressure loss: ${err.message}`, 'error');
+        }
+    }
+
+    async function locateAndLinkArtifact(runId) {
+        try {
+            appendLog("Generating structural file retrieval bridge...");
+            const response = await fetch(`${BACKEND_URL}?action=getArtifact&runId=${runId}`, {
+                method: 'GET',
+                headers: { 'X-Custom-Auth': document.getElementById('passkeyInput').value.trim() }
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error || "Storage cabinet authentication denied.");
+            if (!data.artifactId) throw new Error("Package ready but could not extract safe server links.");
+
+            const downloadUrl = `https://github.com/${REPO}/actions/runs/${runId}/artifacts/${data.artifactId}`;
+            updateProgress(100, "Carafe fully filled. Serving now.");
+            
+            document.getElementById('dlBtn').onclick = () => {
+                window.open(downloadUrl, '_blank');
+                appendLog("Handing flask item over to consumer storage.");
+            };
+            
+            document.getElementById('downloadZone').style.display = 'block';
+            appendLog(`[Fresh] Extraction complete. Pour out!`);
+            resetUI();
+
+        } catch (err) {
+            appendLog(`Packaging breakdown: ${err.message}`, 'error');
+            resetUI();
+        }
+    }
+
+    function updateProgress(percentage, text, mode = 'normal') {
+        const bar = document.getElementById('progressBar');
+        const txt = document.getElementById('progressStage');
+        const cupLiquid = document.getElementById('coffeeLiquidFill');
+        
+        bar.style.width = `${percentage}%`;
+        cupLiquid.style.height = `${percentage}%`;
+        txt.innerText = `${percentage}% — ${text}`;
+        
+        if(mode === 'error') {
+            bar.style.backgroundColor = 'var(--error)';
+        } else {
+            bar.style.backgroundColor = 'var(--accent)';
+        }
+    }
+
+    function resetUI() {
+        if(pollInterval) clearInterval(pollInterval);
+        document.getElementById('actionBtn').disabled = false;
+        document.getElementById('resumeBtn').disabled = false;
+    }
+
+    // Modern Multi-Device Clipboard Injector API
+    function copyBatchIdToClipboard() {
+        const copyInput = document.getElementById('batchIdDisplay');
+        const btnText = document.getElementById('copyBtnText');
+        
+        // Universal Platform Clipboard Execution Fallback
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(copyInput.value).then(() => {
+                uiCopySuccessNotification(btnText);
+            }).catch(() => {
+                legacyCopyFallback(copyInput, btnText);
+            });
+        } else {
+            legacyCopyFallback(copyInput, btnText);
+        }
+    }
+
+    function legacyCopyFallback(inputElement, labelContainer) {
+        inputElement.select();
+        inputElement.setSelectionRange(0, 99999); // Mobile Support Target Anchor
+        try {
+            document.execCommand('copy');
+            uiCopySuccessNotification(labelContainer);
+        } catch (err) {
+            alert('Unable to copy batch ID via native handles.');
+        }
+        window.getSelection().removeAllRanges();
+    }
+
+    function uiCopySuccessNotification(targetLabel) {
+        targetLabel.innerText = "✔️ Copied!";
+        setTimeout(() => {
+            targetLabel.innerText = "📋 Copy ID";
+        }, 2000);
     }
 </script>
+
 </body>
 </html>
