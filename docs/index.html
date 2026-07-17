@@ -40,7 +40,7 @@
         
         .config-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 15px;
             margin-bottom: 20px;
             background: #1e293b;
@@ -50,7 +50,6 @@
         }
 
         .config-group { display: flex; flex-direction: column; }
-        .config-group.full-width { grid-column: span 2; }
 
         label { font-weight: bold; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
         input, select, textarea {
@@ -127,19 +126,11 @@
 <div class="container">
     <h1>Webpage Archiver Remote Console</h1>
     
-    <!-- GitHub Platform API Credentials -->
+    <!-- Configuration Credentials -->
     <div class="config-grid">
         <div class="config-group">
-            <label for="ghRepo">GitHub Repository (owner/repo):</label>
-            <input type="text" id="ghRepo" placeholder="unbounddDestiny/miming-html">
-        </div>
-        <div class="config-group">
-            <label for="ghWorkflow">Workflow Filename:</label>
-            <input type="text" id="ghWorkflow" placeholder="save-offline.yml">
-        </div>
-        <div class="config-group full-width">
-            <label for="ghToken">GitHub Fine-Grained Personal Access Token (PAT):</label>
-            <input type="password" id="ghToken" placeholder="github_pat_...">
+            <label for="ghToken">Decryption / Secret Key:</label>
+            <input type="password" id="ghToken" placeholder="Enter your secret decryption key...">
         </div>
     </div>
 
@@ -153,13 +144,6 @@
             <select id="renderJs">
                 <option value="true">True (Headless Chrome)</option>
                 <option value="false">False (Fast Raw Fetch)</option>
-            </select>
-        </div>
-        <div class="config-group" style="flex: 1;">
-            <label for="commitResults">Commit to Repository:</label>
-            <select id="commitResults">
-                <option value="false" selected>False (Artifacts Only)</option>
-                <option value="true">True</option>
             </select>
         </div>
     </div>
@@ -186,11 +170,9 @@
 <script>
     let pollInterval = null;
 
-    // Secure local caching of non-sensitive layout preferences
-    window.addEventListener('DOMContentLoaded', () => {
-        if (localStorage.getItem('gh_repo')) document.getElementById('ghRepo').value = localStorage.getItem('gh_repo');
-        if (localStorage.getItem('gh_workflow')) document.getElementById('ghWorkflow').value = localStorage.getItem('gh_workflow');
-    });
+    // Hardcoded defaults
+    const DEFAULT_REPO = "unbounddDestiny/miming-html";
+    const DEFAULT_WORKFLOW = "save-offline.yml";
 
     function appendLog(text, type = 'info') {
         const logBox = document.getElementById('logBox');
@@ -203,19 +185,15 @@
     }
 
     async function dispatchWorkflow() {
-        const repo = document.getElementById('ghRepo').value.trim();
-        const workflowFile = document.getElementById('ghWorkflow').value.trim();
+        const repo = DEFAULT_REPO;
+        const workflowFile = DEFAULT_WORKFLOW;
         const token = document.getElementById('ghToken').value.trim();
         const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
 
-        if (!repo || !workflowFile || !token || rawUrls.length === 0) {
-            alert('Missing parameters. Please provide your fine-grained PAT and all required inputs.');
+        if (!token || rawUrls.length === 0) {
+            alert('Missing parameters. Please provide your decryption key and target URLs.');
             return;
         }
-
-        // Save repository context locally to help user experience on page reload
-        localStorage.setItem('gh_repo', repo);
-        localStorage.setItem('gh_workflow', workflowFile);
 
         let inputUrl = "";
         if (rawUrls.length === 1) {
@@ -246,7 +224,7 @@
                         url: inputUrl,
                         urls_file: "", 
                         render_js: document.getElementById('renderJs').value,
-                        commit_results: document.getElementById('commitResults').value
+                        commit_results: "false" // Defaulted to false hardcoded
                     }
                 })
             });
@@ -331,7 +309,6 @@
                 throw new Error("Completed run without locating 'all-snapshots' file container output target.");
             }
 
-            // Fixed authenticated REST endpoint for raw binary direct file streams
             const downloadUrl = `https://api.github.com/repos/${repo}/actions/artifacts/${targetArtifact.id}/zip`;
             
             updateProgress(100, "Success! Package Ready.");
@@ -339,7 +316,6 @@
             
             const dlBtn = document.getElementById('dlBtn');
             
-            // Re-armed click handler intercepting the network thread to parse data using the PAT 
             dlBtn.onclick = async () => {
                 appendLog("Streaming binary ZIP archive from GitHub API...");
                 try {
