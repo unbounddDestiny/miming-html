@@ -1,164 +1,152 @@
-name: Save Website Offline (Perfect Inline Base64 HTML)
+name: Archive Webpage(s) to Single-File HTML
+
+# Turns one or more URLs into self-contained .html files. monolith embeds
+# every image, stylesheet, script, and font it can reach as base64 data
+# URIs directly inside the HTML, so each output file is a single,
+# offline-viewable "carbon copy" of the page — no separate assets folder.
+#
+# Give it URLs one of two ways:
+#   1. The "url" input when you run the workflow manually
+#   2. A text file in the repo (one URL per line), via "urls_file"
+#
+# Fidelity note: monolith freezes the HTML as the server sent it — it does
+# not run JavaScript. That's a faithful copy for most sites (blogs, docs,
+# marketing pages, server-rendered apps). For pages that build their
+# content client-side (SPAs), set "render_js" to true: the workflow then
+# pre-renders the page with headless Chrome first and hands the fully
+# rendered DOM to monolith instead.
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'The URL of the website to save'
+        description: "Single URL to archive (leave blank if only using urls_file)"
+        required: false
+        default: ""
+      urls_file:
+        description: "Repo file with one URL per line (used only if it exists)"
+        required: false
+        default: "urls.txt"
+      render_js:
+        description: "Pre-render with headless Chrome (for JS-heavy / SPA sites)"
         required: true
-        default: 'https://example.com'
-      filename:
-        description: 'Name of the output file (without extension)'
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      commit_results:
+        description: "Commit the generated HTML files back to this repo"
         required: true
-        default: 'offline-page'
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+  # Optional: archive everything in urls_file on a schedule instead of by hand.
+  # schedule:
+  #   - cron: "0 6 * * 1"   # every Monday at 06:00 UTC
+
+permissions:
+  contents: write   # only needed for the commit step; harmless if unused
 
 jobs:
-  capture-html:
+  archive:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 24
+      - name: Install monolith
+        run: |
+          set -e
+          echo "Fetching latest monolith release..."
+          if curl -fL -o /usr/local/bin/monolith \
+              https://github.com/Y2Z/monolith/releases/latest/download/monolith-gnu-linux-x86_64; then
+            chmod +x /usr/local/bin/monolith
+          else
+            echo "Prebuilt binary unavailable — building from source with cargo instead."
+            cargo install monolith --locked
+          fi
+          monolith --version
 
-    - name: Install Dependencies
-      run: |
-        npm install playwright
-        npx playwright install chromium --with-deps
+      - name: Collect URLs to archive
+        env:
+          URL: ${{ inputs.url }}
+          URLS_FILE: ${{ inputs.urls_file }}
+        run: |
+          mkdir -p snapshots
+          : > urls_to_process.txt
 
-    - name: Execute Resilient Base64 Compilation Script
-      run: |
-        cat << 'EOF' > capture.js
-        const { chromium } = require('playwright');
-        const fs = require('fs');
+          if [ -n "$URL" ]; then
+            echo "$URL" >> urls_to_process.txt
+          fi
 
-        (async () => {
-          console.log("Launching robust automated browser session...");
-          const browser = await chromium.launch({ headless: true });
-          const context = await browser.newContext({
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            viewport: { width: 1280, height: 1600 }
-          });
-          const page = await context.newPage();
+          if [ -n "$URLS_FILE" ] && [ -f "$URLS_FILE" ]; then
+            cat "$URLS_FILE" >> urls_to_process.txt
+          fi
 
-          // Intercept and cache image buffers as they download over the wire to bypass CORS completely
-          const imageBufferCache = {};
-          page.on('response', async (response) => {
-            const url = response.url();
-            const contentType = response.headers()['content-type'] || '';
-            if (contentType.startsWith('image/') && response.status() === 200) {
-              try {
-                const buffer = await response.buffer();
-                imageBufferCache[url] = `data:${contentType};base64,${buffer.toString('base64')}`;
-              } catch (e) {
-                // Squelch closed-stream mapping reads
-              }
-            }
-          });
+          sed -i '/^[[:space:]]*$/d' urls_to_process.txt
+          count=$(wc -l < urls_to_process.txt)
+          echo "Found $count URL(s):"
+          cat urls_to_process.txt
 
-          console.log("Navigating to target web page...");
-          await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 90000 });
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No URLs provided. Set the 'url' input or add lines to $URLS_FILE."
+            exit 1
+          fi
 
-          console.log("Executing strict progressive auto-scroll to force load comic panels...");
-          // Dynamic scroll window that stops only when the absolute document bottom stays fixed
-          let previousHeight = 0;
-          let currentHeight = await page.evaluate(() => document.body.scrollHeight);
-          let scrollCounter = 0;
+      - name: Archive each URL
+        env:
+          RENDER_JS: ${{ inputs.render_js }}
+          UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+        run: |
+          while IFS= read -r url; do
+            [ -z "$url" ] && continue
+            echo "== Archiving: $url =="
 
-          while (previousHeight !== currentHeight && scrollCounter < 150) {
-            await page.evaluate(() => window.scrollBy(0, 800));
-            await page.waitForTimeout(250); // Gives background lazy loaders a window to initialize
-            previousHeight = currentHeight;
-            currentHeight = await page.evaluate(() => document.body.scrollHeight);
-            scrollCounter++;
-          }
+            safe_name=$(printf '%s' "$url" | sed -E 's~^https?://~~; s~[^a-zA-Z0-9._-]+~_~g' | cut -c1-150)
+            timestamp=$(date -u +"%Y%m%d-%H%M%S")
+            output_file="snapshots/${safe_name}_${timestamp}.html"
 
-          console.log("Forcing final validation pass for asynchronous images...");
-          await page.waitForLoadState('networkidle');
-          await page.waitForTimeout(4000);
+            if [ "$RENDER_JS" = "true" ]; then
+              echo "Pre-rendering with headless Chrome..."
+              google-chrome \
+                --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
+                --hide-scrollbars --window-size=1920,1080 \
+                --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
+                --user-agent="$UA" \
+                --dump-dom "$url" \
+                | monolith - -I -e -b "$url" -u "$UA" -o "$output_file" \
+                || echo "::warning::Failed to archive $url"
+            else
+              monolith "$url" -I -e -u "$UA" -o "$output_file" \
+                || echo "::warning::Failed to archive $url"
+            fi
 
-          console.log("Injecting layout compiler and packing original formatting assets...");
-          await page.evaluate(async (cacheMap) => {
-            // 1. Process and inline every image on the page using cached network buffers
-            const images = Array.from(document.querySelectorAll('img'));
-            for (const img of images) {
-              // Resolve every potential source naming convention webcomics use
-              const srcTarget = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-src-img');
-              if (srcTarget) {
-                // Match relative asset strings to their absolute URLs
-                const absoluteUrl = new URL(srcTarget, window.location.href).href;
-                if (cacheMap[absoluteUrl]) {
-                  img.src = cacheMap[absoluteUrl];
-                  img.removeAttribute('srcset');
-                  img.removeAttribute('loading');
-                  img.removeAttribute('data-src');
-                  img.removeAttribute('data-lazy-src');
-                  img.removeAttribute('data-src-img');
-                }
-              }
-            }
+            if [ -s "$output_file" ]; then
+              echo "Saved $(du -h "$output_file" | cut -f1) -> $output_file"
+            fi
+          done < urls_to_process.txt
 
-            // 2. Fetch and bake the active CSS rules directly into the page head
-            let unifiedCss = '';
-            for (const sheet of Array.from(document.styleSheets)) {
-              try {
-                for (const rule of Array.from(sheet.cssRules)) {
-                  unifiedCss += rule.cssText + '\n';
-                }
-              } catch (crossOriginErr) {
-                // Fallback: If stylesheet is locked by CORS, rebuild reference targets
-                if (sheet.href) {
-                  try {
-                    const res = await fetch(sheet.href);
-                    const cssText = await res.text();
-                    unifiedCss += cssText + '\n';
-                  } catch (e) {}
-                }
-              }
-            }
-            const inlineStyleTag = document.createElement('style');
-            inlineStyleTag.textContent = unifiedCss;
-            document.head.appendChild(inlineStyleTag);
+      - name: Upload snapshots as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-snapshots
+          path: snapshots/
+          if-no-files-found: warn
+          retention-days: 30
 
-            // 3. Enforce structural containment rules to fix formatting and giant images
-            const scaleCorrectionTag = document.createElement('style');
-            scaleCorrectionTag.textContent = `
-              html, body { max-width: 100% !important; overflow-x: hidden !important; width: 100% !important; }
-              img, .wp-manga-chapter-img img, picture img { 
-                max-width: 100% !important; 
-                width: 100% !important; 
-                height: auto !important; 
-                object-fit: contain !important;
-                display: block !important;
-                margin: 0 auto !important;
-              }
-              div, section, main, article, [class*="wrapper"], [class*="content"] { 
-                max-width: 100% !important; 
-                width: auto !important; 
-                box-sizing: border-box !important; 
-              }
-            `;
-            document.head.appendChild(scaleCorrectionTag);
-          }, imageBufferCache);
-
-          console.log("Exporting perfectly preserved universal HTML artifact...");
-          const compiledLayoutHtml = await page.content();
-          fs.writeFileSync(process.env.OUTPUT_FILENAME, compiledLayoutHtml);
-          
-          await browser.close();
-          console.log("Process completely successful!");
-        })();
-        EOF
-        
-        TARGET_URL="${{ github.event.inputs.url }}" OUTPUT_FILENAME="${{ github.event.inputs.filename }}.html" node capture.js
-
-    - name: Upload Universal HTML Document
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ github.event.inputs.filename }}
-        path: ${{ github.event.inputs.filename }}.html
-        retention-days: 7
+      - name: Commit snapshots back to repo
+        if: ${{ inputs.commit_results == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add snapshots/
+          if ! git diff --cached --quiet; then
+            git commit -m "Add webpage snapshot(s) [skip ci]"
+            git push
+          else
+            echo "Nothing new to commit."
+          fi
