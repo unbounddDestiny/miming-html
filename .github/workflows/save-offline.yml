@@ -1,4 +1,4 @@
-name: Save Website Offline (Robust Base64 Universal HTML)
+name: Save Website Offline (Perfect Inline Base64 HTML)
 
 on:
   workflow_dispatch:
@@ -27,79 +27,107 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        npm install playwright mhtml-to-html
+        npm install playwright
         npx playwright install chromium --with-deps
 
-    - name: Capture Page and Convert to Base64 HTML
+    - name: Execute Native Base64 Inline Scraping
       run: |
         cat << 'EOF' > capture.js
         const { chromium } = require('playwright');
         const fs = require('fs');
-        const mhtmlToHtml = require('mhtml-to-html');
 
         (async () => {
           console.log("Launching automated browser engine...");
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            viewport: { width: 1280, height: 2000 }
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+            viewport: { width: 1440, height: 2500 }
           });
           const page = await context.newPage();
 
           console.log("Navigating to target URL...");
           await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 90000 });
 
-          console.log("Executing precise scroll-down loop to un-lazy-load content...");
+          console.log("Executing auto-scroll loop to wake up lazy-loaded panels...");
           await page.evaluate(async () => {
             await new Promise((resolve) => {
               let totalHeight = 0;
-              const distance = 300; // Small increments mimic human behavior
+              const distance = 400; 
               const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
                 totalHeight += distance;
 
-                if (totalHeight >= scrollHeight || totalHeight > 80000) { 
+                if (totalHeight >= scrollHeight || totalHeight > 120000) { 
                   clearInterval(timer);
                   resolve();
                 }
-              }, 150);
+              }, 80);
             });
           });
 
-          // Allow the background thread connection pipes a brief moment to settle
-          console.log("Waiting for network pipeline to settle completely...");
+          console.log("Letting assets stabilize in background memory threads...");
           await page.waitForLoadState('networkidle');
-          await page.waitForTimeout(3000);
+          await page.waitForTimeout(4000);
 
-          console.log("Using CDP connection to capture the compiled memory snapshot...");
-          const client = await context.newCDPSession(page);
-          const { data } = await client.send('Page.captureSnapshot', { format: 'mhtml' });
+          console.log("Inlining all document assets to raw Base64 structures...");
+          await page.evaluate(async () => {
+            // Helper to download images from browser memory space and convert to string
+            const convertImageToBase64 = async (imgElement) => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = imgElement.naturalWidth || imgElement.width;
+                canvas.height = imgElement.naturalHeight || imgElement.height;
+                
+                if (canvas.width === 0 || canvas.height === 0) return null;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(imgElement, 0, 0);
+                return canvas.toDataURL('image/jpeg', 0.9);
+              } catch (e) {
+                // Fallback via clean network blob fetch if canvas drawing triggers security taints
+                try {
+                  const res = await fetch(imgElement.src);
+                  const blob = await res.blob();
+                  return await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                  });
+                } catch (err) {
+                  return null;
+                }
+              }
+            };
+
+            const images = Array.from(document.querySelectorAll('img'));
+            for (const img of images) {
+              const srcTarget = img.src;
+              if (srcTarget && !srcTarget.startsWith('data:')) {
+                const base64Data = await convertImageToBase64(img);
+                if (base64Data) {
+                  img.src = base64Data;
+                  // Strip layout attributes that conflict with offline renders
+                  img.removeAttribute('srcset');
+                  img.removeAttribute('loading');
+                  img.removeAttribute('data-src');
+                }
+              }
+            }
+          });
+
+          console.log("Saving perfectly compiled HTML matrix directly to file...");
+          const isolatedHtml = await page.content();
+          fs.writeFileSync(process.env.OUTPUT_FILENAME, isolatedHtml);
           
-          fs.writeFileSync('raw_snapshot.mhtml', data);
           await browser.close();
-
-          console.log("De-serializing snapshot and building Base64 HTML compilation archive...");
-          try {
-            const mhtmlContent = fs.readFileSync('raw_snapshot.mhtml', 'utf-8');
-            
-            // Extract the snapshot and re-encode all components into an isolated HTML file
-            const convertedHtml = mhtmlToHtml.convert(mhtmlContent);
-            
-            fs.writeFileSync(process.env.OUTPUT_FILENAME, convertedHtml);
-            console.log(`Compilation successful! File saved: ${process.env.OUTPUT_FILENAME}`);
-          } catch (convertError) {
-            console.error("Conversion failed, falling back to clean data dump:", convertError.message);
-            fs.writeFileSync(process.env.OUTPUT_FILENAME, data);
-          } finally {
-            if (fs.existsSync('raw_snapshot.mhtml')) fs.unlinkSync('raw_snapshot.mhtml');
-          }
+          console.log("Process complete!");
         })();
         EOF
         
         TARGET_URL="${{ github.event.inputs.url }}" OUTPUT_FILENAME="${{ github.event.inputs.filename }}.html" node capture.js
 
-    - name: Upload HTML Document as Artifact
+    - name: Upload Universal HTML Document
       uses: actions/upload-artifact@v4
       with:
         name: ${{ github.event.inputs.filename }}
