@@ -735,13 +735,14 @@
     <div class="download-zone" id="downloadZone">
         <h3>🎉 Infusion Bottled!</h3>
         <p>Your webpage ingredients have been successfully boiled, strained, and packaged into a neat ZIP thermos.</p>
-        <button class="download-btn" id="dlBtn">Take Your Warm Thermos (ZIP)</button>
+        <a class="download-btn" id="dlBtn" href="#" target="_blank">Take Your Warm Thermos (ZIP)</a>
     </div>
 </div>
 
 <script>
     let pollInterval = null;
     let currentCaptchaCode = "";
+    let baseRunId = "";
 
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
@@ -777,7 +778,6 @@
             document.documentElement.setAttribute('data-theme', 'light');
             toggler.innerText = '☀️';
         }
-        // Regenerate to dynamically inherit colors perfectly
         generateCaptcha();
     }
 
@@ -787,7 +787,7 @@
     function generateCaptcha() {
         const canvas = document.getElementById('captchaCanvas');
         const ctx = canvas.getContext('2d');
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Readable characters
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
         let code = '';
         
         for (let i = 0; i < 5; i++) {
@@ -795,17 +795,14 @@
         }
         currentCaptchaCode = code;
 
-        // Reset input UI element
         document.getElementById('captchaInput').value = "";
 
-        // Read current computed variables to color match UI
         const isLight = document.documentElement.getAttribute('data-theme') === 'light';
         const textColor = isLight ? '#4a4135' : '#e2def0';
         const lineWaveColor = isLight ? '#8ea890' : '#e07a70';
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Render Retro Background grid lines
         ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)';
         ctx.lineWidth = 1;
         for (let i = 0; i < canvas.width; i += 10) {
@@ -815,7 +812,6 @@
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
         }
 
-        // Draw distorted hot "steam waves" (Interference Lines)
         ctx.strokeStyle = lineWaveColor;
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.4;
@@ -828,11 +824,9 @@
         ctx.stroke();
 
         ctx.globalAlpha = 1.0;
-        // Text configuration
         ctx.font = "bold 22px 'Fira Code', monospace";
         ctx.textBaseline = "middle";
 
-        // Render each code token with random distortion offsets
         for (let i = 0; i < code.length; i++) {
             ctx.save();
             let xOffset = 18 + (i * 26) + (Math.random() * 6 - 3);
@@ -868,7 +862,6 @@
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    // Toggle Retro Log Console Panel visibility
     function toggleConsoleLog() {
         const logBox = document.getElementById('logBox');
         const toggleBtn = document.getElementById('terminalToggle');
@@ -882,224 +875,140 @@
         }
     }
 
-    // Visual updates for mug fill & progress text
     function updateProgress(percentage, text) {
-        // Linear scale conversion: Empty = 100px SVG rect Y, Full = 30px SVG rect Y
-        const mappedYValue = 100 - (percentage * 0.7);
-        document.getElementById('mugLiquid').setAttribute('y', mappedYValue);
-        document.getElementById('progressStage').innerText = text;
+        const liquidElement = document.getElementById('mugLiquid');
+        const stageElement = document.getElementById('progressStage');
+        
+        const calculatedY = 100 - (percentage * 0.7); 
+        liquidElement.setAttribute('y', calculatedY);
+        stageElement.innerText = text;
     }
 
-    // Universal copy support including iOS, Mobile and secure contexts
     function copyBrewId() {
-        const brewIdText = document.getElementById('badgeRunId').innerText;
-        const btn = document.getElementById('copyBadgeBtn');
-
-        if (!brewIdText || brewIdText.includes('---')) return;
-
-        // Clipboard Modern API
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(brewIdText).then(() => {
-                showSuccessState(btn);
-            }).catch(() => {
-                fallbackCopyText(brewIdText, btn);
-            });
-        } else {
-            // Standard fallback route for legacy/non-https environments
-            fallbackCopyText(brewIdText, btn);
-        }
-    }
-
-    function fallbackCopyText(text, btn) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed"; // prevent scroll offset jump
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showSuccessState(btn);
-        } catch (err) {
-            btn.innerText = "Error";
-        }
-        document.body.removeChild(textArea);
-    }
-
-    function showSuccessState(btn) {
-        btn.innerText = "Copied! ✓";
-        btn.style.color = "var(--success)";
-        btn.style.borderColor = "var(--success)";
-        setTimeout(() => {
-            btn.innerText = "Copy";
-            btn.style.color = "";
-            btn.style.borderColor = "";
-        }, 1500);
-    }
-
-    function resetUI() {
-        document.getElementById('actionBtn').disabled = false;
-        document.getElementById('resumeBtn').disabled = false;
-        if (pollInterval) clearInterval(pollInterval);
+        if (!baseRunId) return;
+        navigator.clipboard.writeText(baseRunId).then(() => {
+            const copyBtn = document.getElementById('copyBadgeBtn');
+            copyBtn.innerText = "Copied!";
+            setTimeout(() => copyBtn.innerText = "Copy", 2000);
+        });
     }
 
     async function startProcess() {
-        const customSecretKey = getCustomSecretKey();
-        const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-        const userCaptchaValue = document.getElementById('captchaInput').value.trim().toUpperCase();
+        const passkey = getCustomSecretKey();
+        const urls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(Boolean);
+        const renderJs = document.getElementById('renderJs').value === "true";
+        const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
 
-        if (!customSecretKey || rawUrls.length === 0) {
-            alert('Grab your tavern key and drop some recipe URLs to begin!');
+        if (!passkey) {
+            alert("Please enter your Private Tavern Key!");
             return;
         }
-
-        // Validate Captcha
-        if (userCaptchaValue !== currentCaptchaCode) {
-            alert('Steam check details mismatch. Please adjust your dial text!');
+        if (urls.length === 0) {
+            alert("Please add at least one URL recipe.");
+            return;
+        }
+        if (captchaInput !== currentCaptchaCode) {
+            alert("Captcha code incorrect. Spin the frequency wheels and try again!");
             generateCaptcha();
             return;
         }
 
         document.getElementById('actionBtn').disabled = true;
-        document.getElementById('downloadZone').style.display = 'none';
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('terminalToggle').style.display = 'block';
-        document.getElementById('idBadgeContainer').style.display = 'none';
-        document.getElementById('logBox').innerHTML = '';
+        document.getElementById('idBadgeContainer').style.display = 'flex';
+        document.getElementById('downloadZone').style.display = 'none';
         
-        updateProgress(5, "Lighting the stove burners...");
-        appendLog("Forwarding tavern credentials to the brewing stove...");
+        document.getElementById('logBox').innerHTML = "";
+        updateProgress(5, "Stoking the furnace fires...");
+        appendLog("Initiating infusion blend...");
 
         try {
-            const backendRes = await fetch(BACKEND_URL, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-Custom-Auth': customSecretKey
-                },
-                body: JSON.stringify({
-                    urls: rawUrls,
-                    renderJs: document.getElementById('renderJs').value
-                })
+            const response = await fetch(`${BACKEND_URL}/start`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ passkey, urls, renderJs })
             });
 
-            const data = await backendRes.json();
-
-            if (!backendRes.ok) {
-                throw new Error(data.error || "The stove rejected the fuel mixture.");
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "Pantry server refused the blend request.");
             }
 
-            appendLog("Success: Secret key cleared. Stirring the cauldron on GitHub dispatch pipelines...");
-            updateProgress(15, "Waiting for virtual cauldron water to boil...");
+            baseRunId = data.runId;
+            document.getElementById('badgeRunId').innerText = baseRunId;
+            appendLog(`Kitchen assigned Brew ID: ${baseRunId}`, 'warn');
             
-            setTimeout(() => trackWorkflowRun(), 10000);
-
-        } catch (error) {
-            appendLog(`Boil Interrupted: ${error.message}`, 'error');
-            resetUI();
-            generateCaptcha(); // cycle captcha if failed
-        }
-    }
-
-    async function trackWorkflowRun() {
-        try {
-            appendLog("Tuning signal frequency to locate active brew recipe badge...");
-            
-            const response = await fetch(`${BACKEND_URL}?action=track`, {
-                method: 'GET',
-                headers: { 'X-Custom-Auth': getCustomSecretKey() }
-            });
-            const data = await response.json();
-            
-            if (!response.ok) throw new Error(data.error || "Failed to contact tracking index.");
-            if (!data.runId) throw new Error("No active stovetops bubbling. Try stirring again.");
-
-            const runId = data.runId;
-            appendLog(`TRACKED -> Unique Brew ID: #${runId}`);
-            
-            // Render beautiful new dynamic Brew ID badge card
-            document.getElementById('badgeRunId').innerText = runId;
-            document.getElementById('idBadgeContainer').style.display = 'flex';
-
-            startPolling(runId);
-
+            startPolling(baseRunId);
         } catch (err) {
-            appendLog(`Locator error: ${err.message}`, 'error');
-            resetUI();
+            appendLog(`Error: ${err.message}`, 'error');
+            updateProgress(0, "Furnace fire went out...");
+            document.getElementById('actionBtn').disabled = false;
         }
     }
 
-    async function resumeRunTracking() {
-        const customSecretKey = getCustomSecretKey();
+    function resumeRunTracking() {
         const runId = document.getElementById('runIdInput').value.trim();
-
-        if (!customSecretKey || !runId) {
-            alert('Please supply both your Tavern Key and your Brew ID!');
+        if (!runId) {
+            alert("Please enter a valid Brew ID.");
             return;
         }
 
-        document.getElementById('resumeBtn').disabled = true;
-        document.getElementById('downloadZone').style.display = 'none';
+        baseRunId = runId;
+        document.getElementById('badgeRunId').innerText = baseRunId;
+        
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('terminalToggle').style.display = 'block';
-        document.getElementById('badgeRunId').innerText = runId;
         document.getElementById('idBadgeContainer').style.display = 'flex';
-        document.getElementById('logBox').innerHTML = '';
+        document.getElementById('downloadZone').style.display = 'none';
+        document.getElementById('logBox').innerHTML = "";
 
-        appendLog(`Dialing into stove channel for Brew ID: #${runId}...`);
-        updateProgress(10, "Establishing cozy satellite handshakes...");
-
+        appendLog(`Reconnected to active tracking pipeline: ${runId}`);
         startPolling(runId);
     }
 
     function startPolling(runId) {
         if (pollInterval) clearInterval(pollInterval);
-        checkStatus(runId);
-        pollInterval = setInterval(() => checkStatus(runId), 7000);
+        
+        pollInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${BACKEND_URL}/status?runId=${runId}`);
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.error || "Pantry query failure.");
+
+                if (data.logs && data.logs.length) {
+                    document.getElementById('logBox').innerHTML = "";
+                    data.logs.forEach(l => appendLog(l.message, l.type));
+                }
+
+                if (data.status === "completed") {
+                    clearInterval(pollInterval);
+                    updateProgress(100, "Infusion complete! Ready to pour.");
+                    setupDownloadLink(runId);
+                    document.getElementById('actionBtn').disabled = false;
+                } else if (data.status === "failed") {
+                    clearInterval(pollInterval);
+                    updateProgress(0, "The mixture spoiled.");
+                    appendLog("Workflow failed inside the factory terminal.", "error");
+                    document.getElementById('actionBtn').disabled = false;
+                } else {
+                    updateProgress(50, "Straining and steeping ingredients...");
+                }
+            } catch (err) {
+                appendLog(`Polling hitch: ${err.message}`, 'error');
+            }
+        }, 4000);
     }
 
-    async function checkStatus(runId) {
-        try {
-            const response = await fetch(`${BACKEND_URL}?runId=${runId}`, {
-                method: 'GET',
-                headers: { 'X-Custom-Auth': getCustomSecretKey() }
-            });
-            const runInfo = await response.json();
-            
-            if (!response.ok) throw new Error(runInfo.error || "Failed to read cooking temperature parameters.");
-            
-            const status = runInfo.status; 
-            const conclusion = runInfo.conclusion; 
-
-            appendLog(`Stove status update: ${status}...`);
-
-            if (status === 'completed') {
-                clearInterval(pollInterval);
-                if (conclusion === 'success') {
-                    updateProgress(100, "Your blend is perfectly steeped!");
-                    appendLog("The kitchen confirms complete success! Bottling your files...");
-                    
-                    // Direct Download trigger setup
-                    const dlUrl = `https://github.com/${REPO}/actions/runs/${runId}`;
-                    document.getElementById('dlBtn').onclick = () => window.location.href = dlUrl;
-                    document.getElementById('downloadZone').style.display = 'block';
-                } else {
-                    updateProgress(0, "Pot boiled over.");
-                    appendLog(`Warning: Pot boiled over during production. Check standard limits.`, 'error');
-                }
-                resetUI();
-            } else {
-                // Smooth incremental coffee filling states based on GitHub environment status
-                if (status === 'queued') {
-                    updateProgress(25, "Waiting on a kitchen workstation...");
-                } else if (status === 'in_progress') {
-                    updateProgress(65, "Blending web flavors together...");
-                }
-            }
-        } catch (err) {
-            appendLog(`Stove reading error: ${err.message}`, 'error');
-            resetUI();
-        }
+    function setupDownloadLink(runId) {
+        const zone = document.getElementById('downloadZone');
+        const dlBtn = document.getElementById('dlBtn');
+        zone.style.display = 'block';
+        
+        // Removed custom fetch overrides to fully default target name control to the backend headers
+        dlBtn.removeAttribute('onclick');
+        dlBtn.href = `${BACKEND_URL}/download?runId=${runId}`;
     }
 </script>
 </body>
