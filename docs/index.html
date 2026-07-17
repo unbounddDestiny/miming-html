@@ -735,14 +735,13 @@
     <div class="download-zone" id="downloadZone">
         <h3>🎉 Infusion Bottled!</h3>
         <p>Your webpage ingredients have been successfully boiled, strained, and packaged into a neat ZIP thermos.</p>
-        <a class="download-btn" id="dlBtn" href="#" target="_blank">Take Your Warm Thermos (ZIP)</a>
+        <button class="download-btn" id="dlBtn">Take Your Warm Thermos (ZIP)</button>
     </div>
 </div>
 
 <script>
     let pollInterval = null;
     let currentCaptchaCode = "";
-    let baseRunId = "";
 
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
@@ -778,6 +777,7 @@
             document.documentElement.setAttribute('data-theme', 'light');
             toggler.innerText = '☀️';
         }
+        // Regenerate to dynamically inherit colors perfectly
         generateCaptcha();
     }
 
@@ -787,7 +787,7 @@
     function generateCaptcha() {
         const canvas = document.getElementById('captchaCanvas');
         const ctx = canvas.getContext('2d');
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Readable characters
         let code = '';
         
         for (let i = 0; i < 5; i++) {
@@ -795,14 +795,17 @@
         }
         currentCaptchaCode = code;
 
+        // Reset input UI element
         document.getElementById('captchaInput').value = "";
 
+        // Read current computed variables to color match UI
         const isLight = document.documentElement.getAttribute('data-theme') === 'light';
         const textColor = isLight ? '#4a4135' : '#e2def0';
         const lineWaveColor = isLight ? '#8ea890' : '#e07a70';
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Render Retro Background grid lines
         ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)';
         ctx.lineWidth = 1;
         for (let i = 0; i < canvas.width; i += 10) {
@@ -812,6 +815,7 @@
             ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
         }
 
+        // Draw distorted hot "steam waves" (Interference Lines)
         ctx.strokeStyle = lineWaveColor;
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.4;
@@ -824,9 +828,11 @@
         ctx.stroke();
 
         ctx.globalAlpha = 1.0;
+        // Text configuration
         ctx.font = "bold 22px 'Fira Code', monospace";
         ctx.textBaseline = "middle";
 
+        // Render each code token with random distortion offsets
         for (let i = 0; i < code.length; i++) {
             ctx.save();
             let xOffset = 18 + (i * 26) + (Math.random() * 6 - 3);
@@ -862,6 +868,7 @@
         logBox.scrollTop = logBox.scrollHeight;
     }
 
+    // Toggle Retro Log Console Panel visibility
     function toggleConsoleLog() {
         const logBox = document.getElementById('logBox');
         const toggleBtn = document.getElementById('terminalToggle');
@@ -875,95 +882,88 @@
         }
     }
 
+    // Visual updates for mug fill & progress text
     function updateProgress(percentage, text) {
-        const liquidElement = document.getElementById('mugLiquid');
-        const stageElement = document.getElementById('progressStage');
-        
-        const calculatedY = 100 - (percentage * 0.7); 
-        liquidElement.setAttribute('y', calculatedY);
-        stageElement.innerText = text;
+        // Linear scale conversion for SVG height mask (100 = empty, 30 = full)
+        const mugFluid = document.getElementById('mugLiquid');
+        if (mugFluid) {
+            const yVal = 100 - (percentage * 0.7);
+            mugFluid.setAttribute('y', yVal);
+        }
+        const stageTitle = document.getElementById('progressStage');
+        if (stageTitle) stageTitle.innerText = text;
     }
 
     function copyBrewId() {
-        if (!baseRunId) return;
-        navigator.clipboard.writeText(baseRunId).then(() => {
-            const copyBtn = document.getElementById('copyBadgeBtn');
-            copyBtn.innerText = "Copied!";
-            setTimeout(() => copyBtn.innerText = "Copy", 2000);
-        });
+        const val = document.getElementById('badgeRunId').innerText;
+        navigator.clipboard.writeText(val);
+        const btn = document.getElementById('copyBadgeBtn');
+        btn.innerText = "Copied!";
+        setTimeout(() => { btn.innerText = "Copy"; }, 2000);
     }
 
     async function startProcess() {
         const passkey = getCustomSecretKey();
-        const urls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(Boolean);
-        const renderJs = document.getElementById('renderJs').value === "true";
+        const urls = document.getElementById('urlInput').value.trim();
+        const renderJs = document.getElementById('renderJs').value === 'true';
         const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
 
-        if (!passkey) {
-            alert("Please enter your Private Tavern Key!");
-            return;
-        }
-        if (urls.length === 0) {
-            alert("Please add at least one URL recipe.");
-            return;
-        }
         if (captchaInput !== currentCaptchaCode) {
-            alert("Captcha code incorrect. Spin the frequency wheels and try again!");
+            alert("🔒 Captcha incorrect! Please check the steaming frequency again.");
             generateCaptcha();
             return;
         }
 
-        document.getElementById('actionBtn').disabled = true;
+        if (!urls) {
+            alert("📌 Please provide at least one recipe URL.");
+            return;
+        }
+
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('terminalToggle').style.display = 'block';
-        document.getElementById('idBadgeContainer').style.display = 'flex';
         document.getElementById('downloadZone').style.display = 'none';
         
-        document.getElementById('logBox').innerHTML = "";
-        updateProgress(5, "Stoking the furnace fires...");
-        appendLog("Initiating infusion blend...");
+        appendLog("Initializing new infusion batch...");
+        updateProgress(10, "Kettle heating up...");
 
         try {
-            const response = await fetch(`${BACKEND_URL}/start`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ passkey, urls, renderJs })
+            const res = await fetch(`${BACKEND_URL}/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ passkey, urls, renderJs, repository: REPO })
             });
-
-            const data = await response.json();
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || "Pantry server refused the blend request.");
+            const data = await res.json();
+            
+            if (!res.ok || data.error) {
+                throw new Error(data.error || "Server rejection during preparation");
             }
 
-            baseRunId = data.runId;
-            document.getElementById('badgeRunId').innerText = baseRunId;
-            appendLog(`Kitchen assigned Brew ID: ${baseRunId}`, 'warn');
+            const runId = data.runId;
+            document.getElementById('idBadgeContainer').style.display = 'flex';
+            document.getElementById('badgeRunId').innerText = runId;
+            appendLog(`Brew ID allocated successfully: ${runId}`);
             
-            startPolling(baseRunId);
+            startPolling(runId);
         } catch (err) {
             appendLog(`Error: ${err.message}`, 'error');
-            updateProgress(0, "Furnace fire went out...");
-            document.getElementById('actionBtn').disabled = false;
+            updateProgress(0, "Infusion failed");
         }
     }
 
     function resumeRunTracking() {
         const runId = document.getElementById('runIdInput').value.trim();
         if (!runId) {
-            alert("Please enter a valid Brew ID.");
+            alert("🏺 Please provide a valid Brew ID.");
             return;
         }
-
-        baseRunId = runId;
-        document.getElementById('badgeRunId').innerText = baseRunId;
-        
         document.getElementById('progressContainer').style.display = 'block';
         document.getElementById('terminalToggle').style.display = 'block';
-        document.getElementById('idBadgeContainer').style.display = 'flex';
         document.getElementById('downloadZone').style.display = 'none';
-        document.getElementById('logBox').innerHTML = "";
-
-        appendLog(`Reconnected to active tracking pipeline: ${runId}`);
+        
+        document.getElementById('idBadgeContainer').style.display = 'flex';
+        document.getElementById('badgeRunId').innerText = runId;
+        
+        appendLog(`Reconnecting to active session: ${runId}`);
         startPolling(runId);
     }
 
@@ -975,40 +975,49 @@
                 const res = await fetch(`${BACKEND_URL}/status?runId=${runId}`);
                 const data = await res.json();
                 
-                if (!res.ok) throw new Error(data.error || "Pantry query failure.");
-
+                if (!res.ok || data.error) {
+                    clearInterval(pollInterval);
+                    throw new Error(data.error || "Status inquiry failed");
+                }
+                
                 if (data.logs && data.logs.length) {
                     document.getElementById('logBox').innerHTML = "";
-                    data.logs.forEach(l => appendLog(l.message, l.type));
+                    data.logs.forEach(log => appendLog(log.message || log, log.type || 'info'));
                 }
-
-                if (data.status === "completed") {
+                
+                if (data.progress) {
+                    updateProgress(data.progress, data.stage || "Infusion simmering...");
+                }
+                
+                if (data.status === 'completed') {
                     clearInterval(pollInterval);
-                    updateProgress(100, "Infusion complete! Ready to pour.");
-                    setupDownloadLink(runId);
-                    document.getElementById('actionBtn').disabled = false;
-                } else if (data.status === "failed") {
+                    updateProgress(100, "Infusion complete!");
+                    appendLog("Batch packaged and moved to pick-up shelf.");
+                    
+                    const dlZone = document.getElementById('downloadZone');
+                    const dlBtn = document.getElementById('dlBtn');
+                    
+                    // Directly sets download link and file name parameters fetched from backend payload
+                    dlBtn.onclick = () => {
+                        const link = document.createElement('a');
+                        link.href = data.downloadUrl;
+                        link.download = data.downloadName || data.fileName || 'infusion.zip';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    };
+                    
+                    dlZone.style.display = 'block';
+                } else if (data.status === 'failed') {
                     clearInterval(pollInterval);
-                    updateProgress(0, "The mixture spoiled.");
-                    appendLog("Workflow failed inside the factory terminal.", "error");
-                    document.getElementById('actionBtn').disabled = false;
-                } else {
-                    updateProgress(50, "Straining and steeping ingredients...");
+                    updateProgress(0, "Brew spoiled");
+                    appendLog("Infusion failed during execution.", 'error');
                 }
             } catch (err) {
-                appendLog(`Polling hitch: ${err.message}`, 'error');
+                clearInterval(pollInterval);
+                appendLog(`Polling Error: ${err.message}`, 'error');
             }
-        }, 4000);
-    }
-
-    function setupDownloadLink(runId) {
-        const zone = document.getElementById('downloadZone');
-        const dlBtn = document.getElementById('dlBtn');
-        zone.style.display = 'block';
-        
-        // Removed custom fetch overrides to fully default target name control to the backend headers
-        dlBtn.removeAttribute('onclick');
-        dlBtn.href = `${BACKEND_URL}/download?runId=${runId}`;
+        }, 3000);
     }
 </script>
 </body>
