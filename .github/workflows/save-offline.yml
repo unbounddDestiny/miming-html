@@ -58,12 +58,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure system-wide reputable adblocker (StevenBlack hosts)
+        run: |
+          echo "Setting up adblock hosts..."
+          curl -sSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | sudo tee -a /etc/hosts > /dev/null
+          echo "Adblocker configured successfully."
+
       - name: Install monolith
         run: |
           set -e
           echo "Fetching latest monolith release..."
           if curl -fL -o /usr/local/bin/monolith \
-              https://github.com/Y2Z/monolith/releases/latest/download/monolith-gnu-linux-x86_64; then
+            https://github.com/Y2Z/monolith/releases/latest/download/monolith-gnu-linux-x86_64; then
             chmod +x /usr/local/bin/monolith
           else
             echo "Prebuilt binary unavailable — building from source with cargo instead."
