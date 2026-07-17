@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: "Single URL to archive (leave blank if only using urls_file)"
+        description: "Multiline URLs to archive"
         required: false
         default: ""
       urls_file:
@@ -22,7 +22,7 @@ on:
       commit_results:
         description: "Commit the generated HTML files back to this repo"
         required: true
-        default: "false" # Default set to false as requested
+        default: "false"
         type: choice
         options:
           - "true"
@@ -44,23 +44,24 @@ jobs:
       - name: Parse URLs
         id: set-matrix
         env:
-          URL: ${{ inputs.url }}
+          URL_INPUT: ${{ inputs.url }}
           URLS_FILE: ${{ inputs.urls_file }}
         run: |
           :> urls_to_process.txt
 
-          if [ -n "$URL" ]; then
-            echo "$URL" >> urls_to_process.txt
+          # Process the multiline input value directly
+          if [ -n "$URL_INPUT" ]; then
+            echo "$URL_INPUT" >> urls_to_process.txt
           fi
 
           if [ -n "$URLS_FILE" ] && [ -f "$URLS_FILE" ]; then
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          # Clean up empty lines
+          # Clean up any potential empty lines or spaces
           sed -i '/^[[:space:]]*$/d' urls_to_process.txt
           
-          # Convert plain list of URLs to JSON array format
+          # Convert the flat list of URLs to a valid JSON array format
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
           
           echo "matrix=${JSON_ARRAY}" >> $GITHUB_OUTPUT
@@ -76,7 +77,7 @@ jobs:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
       fail-fast: false
     
-    name: url #${{ strategy.job-index }}
+    name: "Archive: ${{ matrix.url }}"
     
     steps:
       - name: Checkout repository
@@ -109,7 +110,7 @@ jobs:
           UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
         run: |
           mkdir -p snapshots
-          echo "== Archiving target URL =="
+          echo "== Archiving target URL: $URL =="
 
           output_file="snapshots/url_${JOB_INDEX}.html"
 
@@ -129,26 +130,26 @@ jobs:
                 --user-agent="$UA" \
                 --dump-dom "$URL" \
                 | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file"; then
-                  success=true
-                  break
+                success=true
+                break
               fi
             else
               if monolith "$URL" -I -e -u "$UA" -o "$output_file"; then
-                  success=true
-                  break
+                success=true
+                break
               fi
             fi
 
             echo "Attempt $attempt failed."
             attempt=$((attempt + 1))
             if [ $attempt -le $MAX_ATTEMPTS ]; then
-              echo "Waiting 5 seconds before reloading complete website..."
+              echo "Waiting 5 seconds before reloading..."
               sleep 5
             fi
           done
 
           if [ "$success" = "false" ]; then
-            echo "::warning::Failed to archive webpage after $MAX_ATTEMPTS complete attempts."
+            echo "::warning::Failed to archive webpage after $MAX_ATTEMPTS attempts."
           fi
 
           if [ -s "$output_file" ]; then
@@ -163,7 +164,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
 
-  # STEP 3: Collect all completed snapshots, push them if enabled, and create a final zip download link
+  # STEP 3: Collect all completed snapshots and package them
   commit:
     needs: archive
     runs-on: ubuntu-latest
@@ -179,7 +180,6 @@ jobs:
           pattern: snapshot-*
           merge-multiple: true
 
-      # Allows native zip packaging download directly from GitHub summary panel
       - name: Upload Complete Archive Run Bundle
         uses: actions/upload-artifact@v4
         with:
