@@ -22,7 +22,7 @@ on:
       commit_results:
         description: "Commit the generated HTML files back to this repo"
         required: true
-        default: "true"
+        default: "false" # Default set to false as requested
         type: choice
         options:
           - "true"
@@ -60,7 +60,7 @@ jobs:
           # Clean up empty lines
           sed -i '/^[[:space:]]*$/d' urls_to_process.txt
           
-          # Convert plain list of URLs to JSON array format: ["url1", "url2", ...]
+          # Convert plain list of URLs to JSON array format
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
           
           echo "matrix=${JSON_ARRAY}" >> $GITHUB_OUTPUT
@@ -76,7 +76,6 @@ jobs:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
       fail-fast: false
     
-    # Visual name in Github Actions UI
     name: url #${{ strategy.job-index }}
     
     steps:
@@ -112,7 +111,6 @@ jobs:
           mkdir -p snapshots
           echo "== Archiving target URL =="
 
-          # Clean filename containing only the number index, no timestamps
           output_file="snapshots/url_${JOB_INDEX}.html"
 
           MAX_ATTEMPTS=3
@@ -165,11 +163,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
 
-  # STEP 3: Collect all completed snapshots and push them back to your repo
+  # STEP 3: Collect all completed snapshots, push them if enabled, and create a final zip download link
   commit:
     needs: archive
     runs-on: ubuntu-latest
-    if: ${{ always() && inputs.commit_results == 'true' }}
+    if: ${{ always() }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -181,7 +179,15 @@ jobs:
           pattern: snapshot-*
           merge-multiple: true
 
+      # Allows native zip packaging download directly from GitHub summary panel
+      - name: Upload Complete Archive Run Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-snapshots
+          path: snapshots/
+
       - name: Commit snapshots back to repo
+        if: ${{ inputs.commit_results == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
