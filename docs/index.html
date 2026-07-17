@@ -49,25 +49,33 @@
             border-radius: 6px;
         }
 
-        .config-group { display: flex; flex-direction: column; }
+        .config-group { display: flex; flex-direction: column; margin-bottom: 20px; }
 
-        label { font-weight: bold; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
+        label { font-weight: bold; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); }
         input, select, textarea {
             background: #0f172a;
             border: 1px solid #475569;
             border-radius: 6px;
             color: #fff;
-            padding: 10px;
+            padding: 12px;
             font-size: 14px;
+            box-sizing: border-box;
+            width: 100%;
         }
         input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); }
 
-        textarea { height: 120px; font-family: monospace; resize: vertical; }
+        /* Enhanced URL Input Textarea Area styling */
+        textarea { 
+            height: 240px; 
+            font-family: 'Fira Code', 'Courier New', monospace; 
+            line-height: 1.6;
+            resize: vertical; 
+        }
 
         .options-row {
             display: flex;
             gap: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         button {
@@ -128,18 +136,20 @@
     
     <!-- Configuration Credentials -->
     <div class="config-grid">
-        <div class="config-group">
+        <div class="config-group" style="margin-bottom: 0;">
             <label for="passkeyInput">Custom Secret Key:</label>
             <input type="password" id="passkeyInput" placeholder="Enter your custom secret key to unlock runner...">
         </div>
     </div>
 
     <!-- Execution Settings -->
-    <label for="urlInput">Target URLs (One per line):</label>
-    <textarea id="urlInput" placeholder="https://example.com&#10;https://google.com"></textarea>
+    <div class="config-group">
+        <label for="urlInput">Target URLs (One per line):</label>
+        <textarea id="urlInput" placeholder="https://example.com&#10;https://google.com&#10;https://github.com"></textarea>
+    </div>
 
     <div class="options-row">
-        <div class="config-group" style="flex: 1;">
+        <div class="config-group" style="flex: 1; margin-bottom: 0;">
             <label for="renderJs">Render JavaScript:</label>
             <select id="renderJs">
                 <option value="true">True (Headless Chrome)</option>
@@ -174,7 +184,6 @@
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
 
-    // Helper to pull the input key value dynamically
     function getCustomSecretKey() {
         return document.getElementById('passkeyInput').value.trim();
     }
@@ -230,7 +239,6 @@
             appendLog("Backend successfully verified code and triggered GitHub workflow event.");
             updateProgress(20, "Waiting for GitHub server provisioning...");
             
-            // Wait 10 seconds, then start scanning the secure backend for the new execution run ID
             setTimeout(() => trackWorkflowRun(), 10000);
 
         } catch (error) {
@@ -314,7 +322,6 @@
                 throw new Error("Completed run without locating 'all-snapshots' file container output target.");
             }
 
-            // Redirect assembly setup for the targeted public zip archive container link
             const downloadUrl = `https://github.com/${REPO}/actions/runs/${runId}/artifacts/${data.artifactId}`;
             
             updateProgress(100, "Success! Package Ready.");
