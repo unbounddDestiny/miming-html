@@ -712,6 +712,12 @@
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
             </div>
+            <div class="run-id-clipboard-wrapper">
+            <input type="text" class="run-id-display-field" id="batchIdDisplay" readonly value="Batch ID: #00000">
+            <button type="button" class="btn-clipboard-copy" id="copyBtn" onclick="copyBatchIdToClipboard()">
+                <span id="copyBtnText">📋 Copy ID</span>
+            </button>
+        </div>
         </div>
     </div>
 
@@ -725,13 +731,6 @@
     <div class="download-zone" id="downloadZone">
         <h3>🎉 Extraction Complete! Roasted Fresh.</h3>
         <p>Your web pages have been captured, pressed, and sealed into an insulated archive bundle.</p>
-        
-        <div class="run-id-clipboard-wrapper">
-            <input type="text" class="run-id-display-field" id="batchIdDisplay" readonly value="Batch ID: #00000">
-            <button type="button" class="btn-clipboard-copy" id="copyBtn" onclick="copyBatchIdToClipboard()">
-                <span id="copyBtnText">📋 Copy ID</span>
-            </button>
-        </div>
 
         <button class="download-btn" id="dlBtn">Claim Roasted ZIP Package</button>
     </div>
