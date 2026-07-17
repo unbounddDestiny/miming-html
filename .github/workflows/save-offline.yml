@@ -1,21 +1,5 @@
 name: Archive Webpage(s) to Single-File HTML
 
-# Turns one or more URLs into self-contained .html files. monolith embeds
-# every image, stylesheet, script, and font it can reach as base64 data
-# URIs directly inside the HTML, so each output file is a single,
-# offline-viewable "carbon copy" of the page — no separate assets folder.
-#
-# Give it URLs one of two ways:
-#   1. The "url" input when you run the workflow manually
-#   2. A text file in the repo (one URL per line), via "urls_file"
-#
-# Fidelity note: monolith freezes the HTML as the server sent it — it does
-# not run JavaScript. That's a faithful copy for most sites (blogs, docs,
-# marketing pages, server-rendered apps). For pages that build their
-# content client-side (SPAs), set "render_js" to true: the workflow then
-# pre-renders the page with headless Chrome first and hands the fully
-# rendered DOM to monolith instead.
-
 on:
   workflow_dispatch:
     inputs:
@@ -44,16 +28,54 @@ on:
           - "true"
           - "false"
 
-  # Optional: archive everything in urls_file on a schedule instead of by hand.
-  # schedule:
-  #   - cron: "0 6 * * 1"   # every Monday at 06:00 UTC
-
 permissions:
-  contents: write   # only needed for the commit step; harmless if unused
+  contents: write
 
 jobs:
-  archive:
+  # STEP 1: Parse and output URLs as a JSON array for the matrix
+  prep-urls:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse URLs
+        id: set-matrix
+        env:
+          URL: ${{ inputs.url }}
+          URLS_FILE: ${{ inputs.urls_file }}
+        run: |
+          : > urls_to_process.txt
+
+          if [ -n "$URL" ]; then
+            echo "$URL" >> urls_to_process.txt
+          fi
+
+          if [ -n "$URLS_FILE" ] && [ -f "$URLS_FILE" ]; then
+            cat "$URLS_FILE" >> urls_to_process.txt
+          fi
+
+          # Clean up empty lines
+          sed -i '/^[[:space:]]*$/d' urls_to_process.txt
+          
+          # Convert plain list of URLs to JSON array format: ["url1", "url2", ...]
+          JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
+          
+          echo "matrix=${JSON_ARRAY}" >> $GITHUB_OUTPUT
+          echo "URLs to process: ${JSON_ARRAY}"
+
+  # STEP 2: Run isolated parallel workers (one URL per worker)
+  archive:
+    needs: prep-urls
+    runs-on: ubuntu-latest
+    # If there are no URLs, skip the archive process gracefully
+    if: ${{ needs.prep-urls.outputs.matrix != '[]' && needs.prep-urls.outputs.matrix != '' }}
+    strategy:
+      matrix:
+        url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
+      fail-fast: false # Keep archiving remaining URLs even if one fails
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -77,79 +99,73 @@ jobs:
           fi
           monolith --version
 
-      - name: Collect URLs to archive
+      - name: Archive URL
         env:
-          URL: ${{ inputs.url }}
-          URLS_FILE: ${{ inputs.urls_file }}
-        run: |
-          mkdir -p snapshots
-          : > urls_to_process.txt
-
-          if [ -n "$URL" ]; then
-            echo "$URL" >> urls_to_process.txt
-          fi
-
-          if [ -n "$URLS_FILE" ] && [ -f "$URLS_FILE" ]; then
-            cat "$URLS_FILE" >> urls_to_process.txt
-          fi
-
-          sed -i '/^[[:space:]]*$/d' urls_to_process.txt
-          count=$(wc -l < urls_to_process.txt)
-          echo "Found $count URL(s):"
-          cat urls_to_process.txt
-
-          if [ "$count" -eq 0 ]; then
-            echo "::error::No URLs provided. Set the 'url' input or add lines to $URLS_FILE."
-            exit 1
-          fi
-
-      - name: Archive each URL
-        env:
+          URL: ${{ matrix.url }}
           RENDER_JS: ${{ inputs.render_js }}
           UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
         run: |
-          while IFS= read -r url; do
-            [ -z "$url" ] && continue
-            echo "== Archiving: $url =="
+          mkdir -p snapshots
+          echo "== Archiving: $URL =="
 
-            safe_name=$(printf '%s' "$url" | sed -E 's~^https?://~~; s~[^a-zA-Z0-9._-]+~_~g' | cut -c1-150)
-            timestamp=$(date -u +"%Y%m%d-%H%M%S")
-            output_file="snapshots/${safe_name}_${timestamp}.html"
+          safe_name=$(printf '%s' "$URL" | sed -E 's~^https?://~~; s~[^a-zA-Z0-9._-]+~_~g' | cut -c1-150)
+          timestamp=$(date -u +"%Y%m%d-%H%M%S")
+          output_file="snapshots/${safe_name}_${timestamp}.html"
 
-            if [ "$RENDER_JS" = "true" ]; then
-              echo "Pre-rendering with headless Chrome..."
-              google-chrome \
-                --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
-                --hide-scrollbars --window-size=1920,1080 \
-                --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
-                --user-agent="$UA" \
-                --dump-dom "$url" \
-                | monolith - -I -e -b "$url" -u "$UA" -o "$output_file" \
-                || echo "::warning::Failed to archive $url"
-            else
-              monolith "$url" -I -e -u "$UA" -o "$output_file" \
-                || echo "::warning::Failed to archive $url"
-            fi
+          if [ "$RENDER_JS" = "true" ]; then
+            echo "Pre-rendering with headless Chrome..."
+            google-chrome \
+              --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
+              --hide-scrollbars --window-size=1920,1080 \
+              --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
+              --user-agent="$UA" \
+              --dump-dom "$URL" \
+              | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" \
+              || echo "::warning::Failed to archive $URL"
+          else
+            monolith "$URL" -I -e -u "$UA" -o "$output_file" \
+              || echo "::warning::Failed to archive $URL"
+          fi
 
-            if [ -s "$output_file" ]; then
-              echo "Saved $(du -h "$output_file" | cut -f1) -> $output_file"
-            fi
-          done < urls_to_process.txt
+          if [ -s "$output_file" ]; then
+            echo "Saved $(du -h "$output_file" | cut -f1) -> $output_file"
+          fi
 
-      - name: Upload snapshots as workflow artifact
+      # Upload snapshot as artifact so they can be merged and committed in the next step
+      - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
         with:
-          name: html-snapshots
+          # Use a unique artifact name for each worker to prevent overrides
+          name: snapshot-${{ strategy.job-index }}
           path: snapshots/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 1
+
+  # STEP 3: Collect all completed snapshots and push them back to your repo
+  commit:
+    needs: archive
+    runs-on: ubuntu-latest
+    if: ${{ always() && inputs.commit_results == 'true' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Downloads all worker artifacts to the 'snapshots' directory automatically
+      - name: Download all snapshots
+        uses: actions/download-artifact@v4
+        with:
+          path: snapshots/
+          pattern: snapshot-*
+          merge-multiple: true
 
       - name: Commit snapshots back to repo
-        if: ${{ inputs.commit_results == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Force add if anything got tucked away inside subdirectories
           git add snapshots/
+          
           if ! git diff --cached --quiet; then
             git commit -m "Add webpage snapshot(s) [skip ci]"
             git push
