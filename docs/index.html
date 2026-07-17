@@ -129,8 +129,8 @@
     <!-- Configuration Credentials -->
     <div class="config-grid">
         <div class="config-group">
-            <label for="passkeyInput">Website Passphrase Code:</label>
-            <input type="password" id="passkeyInput" placeholder="Enter custom passkey to unlock runner...">
+            <label for="passkeyInput">Custom Secret Key:</label>
+            <input type="password" id="passkeyInput" placeholder="Enter your custom secret key to unlock runner...">
         </div>
     </div>
 
@@ -170,9 +170,14 @@
 <script>
     let pollInterval = null;
 
-    // Paste your Val Town URL endpoint link here inside quotes
+    // Val Town URL endpoint configuration
     const BACKEND_URL = "https://unboundddestiny--9f7a64b881cc11f1b3361607ee4eb77e.web.val.run"; 
     const REPO = "unbounddDestiny/miming-html";
+
+    // Helper to pull the input key value dynamically
+    function getCustomSecretKey() {
+        return document.getElementById('passkeyInput').value.trim();
+    }
 
     function appendLog(text, type = 'info') {
         const logBox = document.getElementById('logBox');
@@ -185,11 +190,11 @@
     }
 
     async function startProcess() {
-        const passkey = document.getElementById('passkeyInput').value.trim();
+        const customSecretKey = getCustomSecretKey();
         const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
 
-        if (!passkey || rawUrls.length === 0) {
-            alert('Please provide the Website Passphrase and targeted URLs.');
+        if (!customSecretKey || rawUrls.length === 0) {
+            alert('Please provide your Custom Secret Key and target URLs.');
             return;
         }
 
@@ -201,14 +206,16 @@
         document.getElementById('logBox').innerHTML = '';
         
         updateProgress(5, "Contacting secure abstraction backend server...");
-        appendLog("Forwarding execution key validation to proxy host...");
+        appendLog("Forwarding secret authorization verification to proxy host...");
 
         try {
             const backendRes = await fetch(BACKEND_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Custom-Auth': customSecretKey
+                },
                 body: JSON.stringify({
-                    passkey: passkey,
                     inputUrl: inputUrl,
                     renderJs: document.getElementById('renderJs').value
                 })
@@ -223,7 +230,7 @@
             appendLog("Backend successfully verified code and triggered GitHub workflow event.");
             updateProgress(20, "Waiting for GitHub server provisioning...");
             
-            // Wait 10 seconds, then start scanning the public logs for the new execution run ID
+            // Wait 10 seconds, then start scanning the secure backend for the new execution run ID
             setTimeout(() => trackWorkflowRun(), 10000);
 
         } catch (error) {
@@ -234,17 +241,18 @@
 
     async function trackWorkflowRun() {
         try {
-            appendLog("Scanning public action run listings for the active worker ID...");
-            // Public run listings can be accessed without auth on public repos
-            const response = await fetch(`https://api.github.com/repos/${REPO}/actions/runs?per_page=1`);
+            appendLog("Scanning secure proxy for the active worker ID...");
+            
+            const response = await fetch(`${BACKEND_URL}?action=track`, {
+                method: 'GET',
+                headers: { 'X-Custom-Auth': getCustomSecretKey() }
+            });
             const data = await response.json();
             
-            if (!data.workflow_runs || data.workflow_runs.length === 0) {
-                throw new Error("No visible logs found on repository pipeline record.");
-            }
+            if (!response.ok) throw new Error(data.error || "Failed to contact proxy tracking repository logs.");
+            if (!data.runId) throw new Error("No visible logs found on repository pipeline record.");
 
-            const currentRun = data.workflow_runs[0];
-            const runId = currentRun.id;
+            const runId = data.runId;
             appendLog(`Identified Active Tracker Target: Run ID #${runId}`);
 
             pollInterval = setInterval(() => checkStatus(runId), 7000);
@@ -257,8 +265,14 @@
 
     async function checkStatus(runId) {
         try {
-            const response = await fetch(`https://api.github.com/repos/${REPO}/actions/runs/${runId}`);
+            const response = await fetch(`${BACKEND_URL}?runId=${runId}`, {
+                method: 'GET',
+                headers: { 'X-Custom-Auth': getCustomSecretKey() }
+            });
             const runInfo = await response.json();
+            
+            if (!response.ok) throw new Error(runInfo.error || "Failed to update tracking run status.");
+            
             const status = runInfo.status; 
             const conclusion = runInfo.conclusion; 
 
@@ -287,18 +301,21 @@
 
     async function locateAndLinkArtifact(runId) {
         try {
-            appendLog("Searching target download links for 'all-snapshots' packaging zip bundle...");
-            const response = await fetch(`https://api.github.com/repos/${REPO}/actions/runs/${runId}/artifacts`);
+            appendLog("Searching target download links via backend proxy...");
+            
+            const response = await fetch(`${BACKEND_URL}?action=getArtifact&runId=${runId}`, {
+                method: 'GET',
+                headers: { 'X-Custom-Auth': getCustomSecretKey() }
+            });
             const data = await response.json();
 
-            const targetArtifact = data.artifacts.find(art => art.name === "all-snapshots");
-
-            if (!targetArtifact) {
+            if (!response.ok) throw new Error(data.error || "Failed to clear artifact validation.");
+            if (!data.artifactId) {
                 throw new Error("Completed run without locating 'all-snapshots' file container output target.");
             }
 
-            // Public artifact zip links redirect to a direct download file stream
-            const downloadUrl = `https://github.com/${REPO}/actions/runs/${runId}/artifacts/${targetArtifact.id}`;
+            // Redirect assembly setup for the targeted public zip archive container link
+            const downloadUrl = `https://github.com/${REPO}/actions/runs/${runId}/artifacts/${data.artifactId}`;
             
             updateProgress(100, "Success! Package Ready.");
             document.getElementById('progressBar').style.backgroundColor = 'var(--success)';
@@ -328,7 +345,7 @@
     }
 
     function resetUI() {
-        clearInterval(pollInterval);
+        if(pollInterval) clearInterval(pollInterval);
         document.getElementById('actionBtn').disabled = false;
     }
 </script>
