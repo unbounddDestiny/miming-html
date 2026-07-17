@@ -31,6 +31,11 @@
             --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
             --vinyl-color: #e07a70;
             --scanline-opacity: 0.03;
+
+            /* Log Box Specific Dark Theme */
+            --log-bg: #09080d;
+            --log-border: rgba(138, 114, 182, 0.15);
+            --log-text: #92e0c2;
         }
 
         /* ==========================================================================
@@ -54,6 +59,11 @@
             --shadow: 0 12px 30px rgba(115, 102, 85, 0.12);
             --vinyl-color: #8ea890;
             --scanline-opacity: 0.0;
+
+            /* Log Box Specific Light Theme */
+            --log-bg: #fdfbf7;
+            --log-border: rgba(161, 149, 127, 0.25);
+            --log-text: #5c8c72;
         }
 
         /* ==========================================================================
@@ -356,7 +366,7 @@
         }
 
         /* ==========================================================================
-           7. BUTTONS & TEAPOT PROGRESS ANIMATION
+           7. BUTTONS & COFFEE FILLING LOADING SYSTEM
            ========================================================================== */
         .action-button {
             background: var(--accent);
@@ -389,62 +399,50 @@
             opacity: 0.6;
         }
 
-        /* Cozy Kettle Loading Ring */
+        /* Kettle Active Audio Simulation Loader */
         .progress-container {
             margin-top: 30px;
             display: none;
             background: var(--input-bg);
             border: var(--card-border);
-            padding: 20px;
+            padding: 24px;
             border-radius: 16px;
         }
 
         .progress-layout {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 24px;
         }
 
-        .vinyl-wrapper {
+        /* Custom Interactive Cozy SVG Mug Wrapper */
+        .mug-wrapper {
             position: relative;
-            width: 54px;
-            height: 54px;
+            width: 60px;
+            height: 60px;
             flex-shrink: 0;
         }
 
-        .vinyl-disk {
+        .mug-svg {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
-            background: radial-gradient(circle, #2d2a3a 15%, #0c0b11 16%, #0c0b11 30%, #1f1c29 31%, #1f1c29 45%, #0c0b11 46%, #0c0b11 70%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: spin 3s linear infinite;
-            animation-play-state: paused;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        .vinyl-disk::after {
-            content: '';
-            width: 12px;
-            height: 12px;
-            background: var(--vinyl-color);
-            border-radius: 50%;
-        }
-
-        .vinyl-wrapper.spinning .vinyl-disk {
-            animation-play-state: running;
+        /* Fluid Fill Animation Layer */
+        .mug-fluid {
+            transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .progress-details {
             flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .stage-title {
             font-size: 14px;
             font-weight: 700;
-            margin-bottom: 6px;
         }
 
         .progress-bar-wrapper {
@@ -452,31 +450,93 @@
             background: rgba(255, 255, 255, 0.08);
             border-radius: 100px;
             overflow: hidden;
-        }
-
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: var(--accent);
-            border-radius: 100px;
+            display: none; /* Hidden now that the Coffee Cup represents the filling bar */
         }
 
         /* ==========================================================================
-           8. BREWROOM CONSOLE OUTPUT & PACKAGE DELIVERY
+           7B. THE COZY BREW-ID SHIELD AND ACTION LABELS
            ========================================================================== */
+        .id-badge-container {
+            display: none; /* Appears when tracking starts */
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            border: var(--card-border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .id-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .id-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .copy-btn {
+            background: var(--input-bg);
+            border: var(--card-border);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ==========================================================================
+           8. BREWROOM COLLAPSIBLE retro terminal
+           ========================================================================== */
+        .terminal-toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Quicksand', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 5px 0;
+            text-align: left;
+            margin-top: 15px;
+            display: none; /* Appears alongside progress */
+        }
+
+        .terminal-toggle-btn:hover {
+            color: var(--accent);
+        }
+
         .log-box {
-            background: #09080d;
-            border: 1px solid rgba(138, 114, 182, 0.1);
+            background: var(--log-bg);
+            border: 1px solid var(--log-border);
             font-family: 'Fira Code', monospace;
             padding: 15px;
             border-radius: 12px;
             height: 150px;
             overflow-y: auto;
-            margin-top: 25px;
+            margin-top: 12px;
             font-size: 11px;
             line-height: 1.6;
-            color: #92e0c2; /* Matcha Green console */
-            display: none;
+            color: var(--log-text);
+            display: none; /* Toggled manually */
+            animation: fade-in 0.3s ease-out;
         }
 
         .download-zone {
@@ -544,7 +604,7 @@
     <div class="header-area">
         <h1><span class="lofi-icon">☕</span> The Cozy Brewroom</h1>
         <div class="theme-control">
-            <!-- Theme Changer (Default text set on initialization in JS) -->
+            <!-- Theme Changer -->
             <button class="btn-round" id="themeToggler" onclick="toggleTheme()" title="Toggle Cozy Light/Dark Palette">
                 🌙
             </button>
@@ -628,23 +688,48 @@
         </div>
     </div>
 
-    <!-- Kettle Active Audio Simulation Loader -->
+    <!-- Cozy Coffee Mug Interactive Progress Loader -->
     <div class="progress-container" id="progressContainer">
         <div class="progress-layout">
-            <div class="vinyl-wrapper" id="vinylWrapper">
-                <div class="vinyl-disk"></div>
+            <div class="mug-wrapper" id="mugWrapper">
+                <!-- Inline SVG Coffee Cup with dynamic mask fill -->
+                <svg class="mug-svg" viewBox="0 0 100 100">
+                    <defs>
+                        <!-- Clipping path matching inside cup walls -->
+                        <clipPath id="mugInnerClip">
+                            <path d="M 25,30 L 75,30 L 70,85 A 15,15 0 0,1 55,95 L 45,95 A 15,15 0 0,1 30,85 Z" />
+                        </clipPath>
+                    </defs>
+                    <!-- Handle -->
+                    <path d="M 72,40 C 88,40 88,70 71,70" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" style="opacity: 0.85;" />
+                    <!-- Mug Outer Body Wall -->
+                    <path d="M 25,30 L 75,30 L 70,85 A 15,15 0 0,1 55,95 L 45,95 A 15,15 0 0,1 30,85 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round" style="opacity: 0.85;" />
+                    <!-- Masked Liquid Layer -->
+                    <g clip-path="url(#mugInnerClip)">
+                        <!-- Adjust Y attribute to move fluid level (100 is empty, 30 is full) -->
+                        <rect id="mugLiquid" class="mug-fluid" x="0" y="100" width="100" height="100" fill="var(--accent)" />
+                    </g>
+                </svg>
             </div>
             <div class="progress-details">
                 <div class="stage-title" id="progressStage">Kettle heating up...</div>
                 <div class="progress-bar-wrapper">
                     <div class="progress-bar" id="progressBar"></div>
                 </div>
+                <!-- Dynamic Brew ID Output Shield with Universal Clipboard Trigger -->
+                <div class="id-badge-container" id="idBadgeContainer">
+                    <span class="id-label">🏺 Brew ID:</span>
+                    <span class="id-value" id="badgeRunId">--------</span>
+                    <button class="copy-btn" id="copyBadgeBtn" onclick="copyBrewId()">Copy</button>
+                </div>
             </div>
         </div>
+        
+        <!-- Toggle details button to drop down raw log terminal -->
+        <button class="terminal-toggle-btn" id="terminalToggle" onclick="toggleConsoleLog()">Inspect Brew Log ⚙️</button>
+        <!-- Embedded Hidden Terminal Outputs -->
+        <div class="log-box" id="logBox"></div>
     </div>
-
-    <!-- Embedded Terminal Outputs -->
-    <div class="log-box" id="logBox"></div>
 
     <!-- Cozy Snapshot Arrival Card -->
     <div class="download-zone" id="downloadZone">
@@ -776,24 +861,85 @@
 
     function appendLog(text, type = 'info') {
         const logBox = document.getElementById('logBox');
-        logBox.style.display = 'block';
-        let color = '#92e0c2'; 
+        let color = 'var(--log-text)'; 
         if (type === 'error') color = '#df6c75';
         if (type === 'warn') color = '#e9c46a';
         logBox.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}</span><br>`;
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    // Visual updates for progress bar
+    // Toggle Retro Log Console Panel visibility
+    function toggleConsoleLog() {
+        const logBox = document.getElementById('logBox');
+        const toggleBtn = document.getElementById('terminalToggle');
+        if (logBox.style.display === 'block') {
+            logBox.style.display = 'none';
+            toggleBtn.innerText = 'Inspect Brew Log ⚙️';
+        } else {
+            logBox.style.display = 'block';
+            toggleBtn.innerText = 'Collapse Brew Log ⚙️';
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+    }
+
+    // Visual updates for mug fill & progress text
     function updateProgress(percentage, text) {
-        document.getElementById('progressBar').style.width = percentage + "%";
+        // Linear scale conversion: Empty = 100px SVG rect Y, Full = 30px SVG rect Y
+        const mappedYValue = 100 - (percentage * 0.7);
+        document.getElementById('mugLiquid').setAttribute('y', mappedYValue);
         document.getElementById('progressStage').innerText = text;
+    }
+
+    // Universal copy support including iOS, Mobile and secure contexts
+    function copyBrewId() {
+        const brewIdText = document.getElementById('badgeRunId').innerText;
+        const btn = document.getElementById('copyBadgeBtn');
+
+        if (!brewIdText || brewIdText.includes('---')) return;
+
+        // Clipboard Modern API
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(brewIdText).then(() => {
+                showSuccessState(btn);
+            }).catch(() => {
+                fallbackCopyText(brewIdText, btn);
+            });
+        } else {
+            // Standard fallback route for legacy/non-https environments
+            fallbackCopyText(brewIdText, btn);
+        }
+    }
+
+    function fallbackCopyText(text, btn) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed"; // prevent scroll offset jump
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showSuccessState(btn);
+        } catch (err) {
+            btn.innerText = "Error";
+        }
+        document.body.removeChild(textArea);
+    }
+
+    function showSuccessState(btn) {
+        btn.innerText = "Copied! ✓";
+        btn.style.color = "var(--success)";
+        btn.style.borderColor = "var(--success)";
+        setTimeout(() => {
+            btn.innerText = "Copy";
+            btn.style.color = "";
+            btn.style.borderColor = "";
+        }, 1500);
     }
 
     function resetUI() {
         document.getElementById('actionBtn').disabled = false;
         document.getElementById('resumeBtn').disabled = false;
-        document.getElementById('vinylWrapper').classList.remove('spinning');
         if (pollInterval) clearInterval(pollInterval);
     }
 
@@ -817,10 +963,11 @@
         document.getElementById('actionBtn').disabled = true;
         document.getElementById('downloadZone').style.display = 'none';
         document.getElementById('progressContainer').style.display = 'block';
-        document.getElementById('vinylWrapper').classList.add('spinning');
+        document.getElementById('terminalToggle').style.display = 'block';
+        document.getElementById('idBadgeContainer').style.display = 'none';
         document.getElementById('logBox').innerHTML = '';
         
-        updateProgress(5, "Contacting the stove transmitter...");
+        updateProgress(5, "Lighting the stove burners...");
         appendLog("Forwarding tavern credentials to the brewing stove...");
 
         try {
@@ -843,7 +990,7 @@
             }
 
             appendLog("Success: Secret key cleared. Stirring the cauldron on GitHub dispatch pipelines...");
-            updateProgress(20, "Waiting for virtual cauldron water to boil...");
+            updateProgress(15, "Waiting for virtual cauldron water to boil...");
             
             setTimeout(() => trackWorkflowRun(), 10000);
 
@@ -869,7 +1016,10 @@
 
             const runId = data.runId;
             appendLog(`TRACKED -> Unique Brew ID: #${runId}`);
-            appendLog(`💡 Tip: Jot down this Brew ID so you can Pour & Go later if you wander off!`);
+            
+            // Render beautiful new dynamic Brew ID badge card
+            document.getElementById('badgeRunId').innerText = runId;
+            document.getElementById('idBadgeContainer').style.display = 'flex';
 
             startPolling(runId);
 
@@ -891,11 +1041,13 @@
         document.getElementById('resumeBtn').disabled = true;
         document.getElementById('downloadZone').style.display = 'none';
         document.getElementById('progressContainer').style.display = 'block';
-        document.getElementById('vinylWrapper').classList.add('spinning');
+        document.getElementById('terminalToggle').style.display = 'block';
+        document.getElementById('badgeRunId').innerText = runId;
+        document.getElementById('idBadgeContainer').style.display = 'flex';
         document.getElementById('logBox').innerHTML = '';
 
         appendLog(`Dialing into stove channel for Brew ID: #${runId}...`);
-        updateProgress(10, "Attempting satellite kitchen handshakes...");
+        updateProgress(10, "Establishing cozy satellite handshakes...");
 
         startPolling(runId);
     }
@@ -924,24 +1076,24 @@
             if (status === 'completed') {
                 clearInterval(pollInterval);
                 if (conclusion === 'success') {
-                    updateProgress(100, "Brew fully steeped!");
+                    updateProgress(100, "Your blend is perfectly steeped!");
                     appendLog("The kitchen confirms complete success! Bottling your files...");
                     
-                    // Direct Download trigger
+                    // Direct Download trigger setup
                     const dlUrl = `https://nightly.link/${REPO}/actions/runs/${runId}/snapshots.zip`;
                     document.getElementById('dlBtn').onclick = () => window.location.href = dlUrl;
                     document.getElementById('downloadZone').style.display = 'block';
                 } else {
-                    updateProgress(100, "Pot boiled over.");
+                    updateProgress(0, "Pot boiled over.");
                     appendLog(`Warning: Pot boiled over during production. Check standard limits.`, 'error');
                 }
                 resetUI();
             } else {
-                // Approximate cooking phases
+                // Smooth incremental coffee filling states based on GitHub environment status
                 if (status === 'queued') {
-                    updateProgress(25, "Waiting for kitchen table to clear...");
+                    updateProgress(25, "Waiting on a kitchen workstation...");
                 } else if (status === 'in_progress') {
-                    updateProgress(65, "Boiling ingredients together...");
+                    updateProgress(65, "Blending web flavors together...");
                 }
             }
         } catch (err) {
