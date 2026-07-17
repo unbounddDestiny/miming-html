@@ -25,72 +25,66 @@ jobs:
       with:
         node-version: 24
 
-    - name: Install Playwright and SingleFile
+    - name: Install Dependencies
       run: |
         npm install playwright single-file-cli
         npx playwright install chromium --with-deps
 
-    - name: Run Scroll and Base64 Capture Script
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const { chromium } = require('playwright');
-          const fs = require('fs');
-          const { execSync } = require('child_process');
-          
-          const targetUrl = '${{ github.event.inputs.url }}';
-          const outputName = '${{ github.event.inputs.filename }}.html';
-          
-          console.log(`Launching browser for: ${targetUrl}`);
+    - name: Scroll Page and Trigger Lazy-Load
+      run: |
+        cat << 'EOF' > scroll.js
+        const { chromium } = require('playwright');
+        const fs = require('fs');
+
+        (async () => {
+          console.log("Launching browser...");
           const browser = await chromium.launch({ headless: true });
-          const browserContext = await browser.newContext({
+          const context = await browser.newContext({
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           });
-          const page = await browserContext.newPage();
-          
-          // Open the page and wait for major elements to drop into view
-          await page.goto(targetUrl, { waitUntil: 'load', timeout: 60000 });
-          
-          // AUTO-SCROLL: Moves down slowly to awaken lazy-loaded images
-          console.log('Scrolling page down to force image triggers...');
+          const page = await context.newPage();
+
+          console.log("Navigating to target URL...");
+          await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 60000 });
+
+          console.log("Scrolling down to un-lazy-load images...");
           await page.evaluate(async () => {
             await new Promise((resolve) => {
               let totalHeight = 0;
-              const distance = 350; // Pixels per scroll step
+              const distance = 400;
               const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
                 totalHeight += distance;
-                
-                if (totalHeight >= scrollHeight) {
+
+                if (totalHeight >= scrollHeight || totalHeight > 50000) { // Safety max height cap
                   clearInterval(timer);
                   resolve();
                 }
-              }, 120); // Delay between scrolls
+              }, 100);
             });
           });
-          
-          // Final rest period for concurrent network pipes to finish writing
+
+          // Rest to ensure images fully load over the network
           await page.waitForLoadState('networkidle');
-          
-          // Get the raw fully expanded HTML directly out of the DOM state
-          const dynamicHtml = await page.content();
-          fs.writeFileSync('temp_state.html', dynamicHtml);
-          console.log('DOM state extracted. Closing playwright container.');
+
+          // Dump fully unpacked DOM
+          const html = await page.content();
+          fs.writeFileSync('expanded_state.html', html);
+          console.log("DOM state successfully saved to disk.");
+
           await browser.close();
-          
-          // Process the document with SingleFile into a Base64 self-contained matrix
-          console.log('Processing page to lock formatting and inline assets via Base64...');
-          try {
-            execSync(`npx single-file --base-url="${targetUrl}" "temp_state.html" "${outputName}"`);
-            console.log(`Successfully compiled standalone Base64 HTML document: ${outputName}`);
-          } catch (err) {
-            console.error('SingleFile engine threw an asset formatting exception:', err.message);
-            // Fallback backup write if SingleFile encounters parsing bugs on broken CSS
-            fs.renameSync('temp_state.html', outputName);
-          } finally {
-            if (fs.existsSync('temp_state.html')) fs.unlinkSync('temp_state.html');
-          }
+        })();
+        EOF
+        
+        # Execute script via Node, passing the input URL as an env variable
+        TARGET_URL="${{ github.event.inputs.url }}" node scroll.js
+
+    - name: Compile to Base64 SingleFile HTML
+      run: |
+        # Use SingleFile to inline all images as base64 strings directly into a universal format
+        npx single-file --base-url="${{ github.event.inputs.url }}" expanded_state.html "${{ github.event.inputs.filename }}.html"
+        echo "Compilation complete!"
 
     - name: Upload HTML Document as Artifact
       uses: actions/upload-artifact@v4
