@@ -1,4 +1,4 @@
-name: Save Website Offline (Base64 Universal HTML)
+name: Save Website Offline (Robust Base64 Universal HTML)
 
 on:
   workflow_dispatch:
@@ -27,77 +27,73 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        npm install playwright
+        npm install playwright mhtml-to-html
         npx playwright install chromium --with-deps
 
-    - name: Scroll Page and Capture Base64 HTML
+    - name: Capture Page and Convert to Base64 HTML
       run: |
         cat << 'EOF' > capture.js
         const { chromium } = require('playwright');
         const fs = require('fs');
+        const mhtmlToHtml = require('mhtml-to-html');
 
         (async () => {
-          console.log("Launching headless browser...");
+          console.log("Launching automated browser engine...");
           const browser = await chromium.launch({ headless: true });
           const context = await browser.newContext({
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            viewport: { width: 1280, height: 2000 }
           });
           const page = await context.newPage();
 
           console.log("Navigating to target URL...");
-          await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 60000 });
+          await page.goto(process.env.TARGET_URL, { waitUntil: 'load', timeout: 90000 });
 
-          console.log("Scrolling down to un-lazy-load manga/comic images...");
+          console.log("Executing precise scroll-down loop to un-lazy-load content...");
           await page.evaluate(async () => {
             await new Promise((resolve) => {
               let totalHeight = 0;
-              const distance = 400;
+              const distance = 300; // Small increments mimic human behavior
               const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
                 totalHeight += distance;
 
-                if (totalHeight >= scrollHeight || totalHeight > 60000) { 
+                if (totalHeight >= scrollHeight || totalHeight > 80000) { 
                   clearInterval(timer);
                   resolve();
                 }
-              }, 120);
+              }, 150);
             });
           });
 
-          console.log("Waiting for network connections to idle...");
+          // Allow the background thread connection pipes a brief moment to settle
+          console.log("Waiting for network pipeline to settle completely...");
           await page.waitForLoadState('networkidle');
+          await page.waitForTimeout(3000);
 
-          console.log("Converting all images on the page into inline Base64 strings...");
-          await page.evaluate(async () => {
-            const toBase64 = url => fetch(url)
-              .then(response => response.blob())
-              .then(blob => new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-              })).catch(() => null);
-
-            const images = document.querySelectorAll('img');
-            for (const img of images) {
-              if (img.src && !img.src.startsWith('data:')) {
-                const base64Str = await toBase64(img.src);
-                if (base64Str) {
-                  img.src = base64Str;
-                  if (img.hasAttribute('srcset')) img.removeAttribute('srcset');
-                  if (img.hasAttribute('data-src')) img.removeAttribute('data-src');
-                }
-              }
-            }
-          });
-
-          console.log("Dumping self-contained HTML layout...");
-          const completedHtml = await page.content();
-          fs.writeFileSync(process.env.OUTPUT_FILENAME, completedHtml);
-          console.log("Successfully compiled standalone HTML document.");
-
+          console.log("Using CDP connection to capture the compiled memory snapshot...");
+          const client = await context.newCDPSession(page);
+          const { data } = await client.send('Page.captureSnapshot', { format: 'mhtml' });
+          
+          fs.writeFileSync('raw_snapshot.mhtml', data);
           await browser.close();
+
+          console.log("De-serializing snapshot and building Base64 HTML compilation archive...");
+          try {
+            const mhtmlContent = fs.readFileSync('raw_snapshot.mhtml', 'utf-8');
+            
+            // Extract the snapshot and re-encode all components into an isolated HTML file
+            const convertedHtml = mhtmlToHtml.convert(mhtmlContent);
+            
+            fs.writeFileSync(process.env.OUTPUT_FILENAME, convertedHtml);
+            console.log(`Compilation successful! File saved: ${process.env.OUTPUT_FILENAME}`);
+          } catch (convertError) {
+            console.error("Conversion failed, falling back to clean data dump:", convertError.message);
+            fs.writeFileSync(process.env.OUTPUT_FILENAME, data);
+          } finally {
+            if (fs.existsSync('raw_snapshot.mhtml')) fs.unlinkSync('raw_snapshot.mhtml');
+          }
         })();
         EOF
         
