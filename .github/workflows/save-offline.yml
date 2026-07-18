@@ -27,6 +27,10 @@ on:
         options:
           - "true"
           - "false"
+      run_attempt_count:
+        description: "Internal run tracking count"
+        required: false
+        default: "1"
 
 permissions:
   contents: write
@@ -73,7 +77,7 @@ jobs:
     strategy:
       matrix:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
-      fail-fast: false
+      fail-fast: true # Stops other matrix items immediately if one triggers the 10-second timeout
     
     name: "Archive: ${{ matrix.url }}"
     
@@ -101,6 +105,9 @@ jobs:
           monolith --version
 
       - name: Archive Action
+        # Strictly enforces a hard ceiling. Since timeout-minutes only accepts integers,
+        # 1 minute is the lowest possible runner level value. To enforce an exact 10 second limit,
+        # we configure coreutils timeout directly inside the shell run command.
         env:
           URL: ${{ matrix.url }}
           RENDER_JS: ${{ inputs.render_js }}
@@ -109,42 +116,21 @@ jobs:
         run: |
           mkdir -p snapshots
           echo "== Archiving target URL: $URL =="
-
           output_file="snapshots/url_${JOB_INDEX}.html"
 
-          MAX_ATTEMPTS=3
-          attempt=1
-          success=false
-
-          while [ $attempt -le $MAX_ATTEMPTS ]; do
-            echo "Attempt $attempt of $MAX_ATTEMPTS..."
-            
-            if [ "$RENDER_JS" = "true" ]; then
-              echo "Pre-rendering with headless Chrome..."
-              if google-chrome \
-                --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
-                --hide-scrollbars --window-size=1920,1080 \
-                --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
-                --user-agent="$UA" \
-                --dump-dom "$URL" \
-                | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file"; then
-                success=true
-                break
-              fi
-            else
-              if monolith "$URL" -I -e -u "$UA" -o "$output_file"; then
-                success=true
-                break
-              fi
-            fi
-
-            echo "Attempt $attempt failed."
-            attempt=$((attempt + 1))
-          done
-
-          if [ "$success" = "false" ]; then
-            echo "Failed to archive webpage after $MAX_ATTEMPTS attempts."
-            exit 1
+          # Use coreutils timeout command set directly to 10 seconds
+          if [ "$RENDER_JS" = "true" ]; then
+            echo "Pre-rendering with headless Chrome (10s max restriction)..."
+            timeout 10s google-chrome \
+              --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
+              --hide-scrollbars --window-size=1920,1080 \
+              --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
+              --user-agent="$UA" \
+              --dump-dom "$URL" \
+              | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" || exit 124
+          else
+            echo "Archiving with monolith directly (10s max restriction)..."
+            timeout 10s monolith "$URL" -I -e -u "$UA" -o "$output_file" || exit 124
           fi
 
           if [ -s "$output_file" ]; then
@@ -152,7 +138,6 @@ jobs:
           fi
 
       - name: Upload snapshot artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: snapshot-${{ strategy.job-index }}
@@ -160,11 +145,43 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
 
+  # Orchestrator fallback that acts if a 10s step limitation is breached
+  handle-retry:
+    needs: archive
+    runs-on: ubuntu-latest
+    if: ${{ failure() }}
+    steps:
+      - name: Evaluate and Dispatch Whole Matrix Renewal
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const currentAttempt = parseInt(context.payload.inputs.run_attempt_count || "1", 10);
+            if (currentAttempt < 3) {
+              const nextAttempt = currentAttempt + 1;
+              console.log(`A matrix snapshot exceeded the 10s limit. Re-dispatching workflow execution (Attempt ${nextAttempt}/3)...`);
+              
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'save-offline.yml',
+                ref: context.ref,
+                inputs: {
+                  url: context.payload.inputs.url,
+                  urls_file: context.payload.inputs.urls_file,
+                  render_js: context.payload.inputs.render_js,
+                  commit_results: context.payload.inputs.commit_results,
+                  run_attempt_count: String(nextAttempt)
+                }
+              });
+            } else {
+              core.setFailed("Workflow execution timed out over 10 seconds across 3 full separate structural run updates. Halting loop.");
+            }
+
   # STEP 3: Collect all completed snapshots and package them
   commit:
     needs: archive
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ always() && needs.archive.result == 'success' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -183,7 +200,7 @@ jobs:
           path: snapshots/
 
       - name: Commit snapshots back to repo
-        if: ${{ inputs.commit_results == 'true' && needs.archive.result == 'success' }}
+        if: ${{ inputs.commit_results == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
