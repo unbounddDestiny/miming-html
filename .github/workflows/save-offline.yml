@@ -30,13 +30,13 @@ on:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   prep-urls:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      urls_json: ${{ steps.set-matrix.outputs.urls_json }}
+      count: ${{ steps.set-matrix.outputs.count }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,103 +58,83 @@ jobs:
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          # Normalise: strip CR (CRLF files), trim whitespace, drop blank lines, de-duplicate
+          # Normalise: strip CR (CRLF), trim whitespace, drop blank lines, de-duplicate
           sed -i 's/\r$//' urls_to_process.txt
           sed -i 's/^[[:space:]]*//; s/[[:space:]]*$//' urls_to_process.txt
           sed -i '/^[[:space:]]*$/d' urls_to_process.txt
           awk '!seen[$0]++' urls_to_process.txt > urls_dedup.txt
           mv urls_dedup.txt urls_to_process.txt
 
+          COUNT=$(wc -l < urls_to_process.txt | tr -d ' ')
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+          # Base64 encode to safely bypass GitHub Actions multiline output limits
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
-          echo "matrix=${JSON_ARRAY}" >> "$GITHUB_OUTPUT"
+          echo "urls_json=$(echo "$JSON_ARRAY" | base64 -w 0)" >> "$GITHUB_OUTPUT"
 
   archive:
     needs: prep-urls
     runs-on: ubuntu-latest
-    if: ${{ needs.prep-urls.outputs.matrix != '[]' && needs.prep-urls.outputs.matrix != '' }}
-    strategy:
-      matrix:
-        url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
-      fail-fast: false
-      max-parallel: 2 # SAFE LAYER 7 LIMIT: Staggered execution to prevent firewall blocks
-
-    name: "Archive: ${{ matrix.url }}"
-
+    if: ${{ needs.prep-urls.outputs.count != '0' && needs.prep-urls.outputs.count != '' }}
+    name: "Archive URLs Sequentially"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Compute cache date bucket
-        id: datebucket
-        run: echo "value=$(date -u +'%Y-%m')" >> "$GITHUB_OUTPUT"
+      - name: Decode URLs
+        id: decode
+        run: |
+          echo "${{ needs.prep-urls.outputs.urls_json }}" | base64 -d > urls.json
+          echo "urls_count=$(jq 'length' urls.json)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Monolith Binary
         id: cache-monolith
         uses: actions/cache@v4
         with:
           path: /usr/local/bin/monolith
-          key: monolith-linux-${{ steps.datebucket.outputs.value }}
+          key: monolith-linux-${{ runner.os }}-v1
 
       - name: Install monolith
         if: steps.cache-monolith.outputs.cache-hit != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
-          ASSET_URL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/Y2Z/monolith/releases/latest \
-            | jq -r '.assets[] | select(.name == "monolith-gnu-linux-x86_64") | .browser_download_url')
-
-          if [ -n "$ASSET_URL" ]; then
-            curl -fL -o /usr/local/bin/monolith "$ASSET_URL" && chmod +x /usr/local/bin/monolith
-          fi
-
-          if [ ! -x /usr/local/bin/monolith ] || ! /usr/local/bin/monolith -V >/dev/null 2>&1; then
+          echo "Installing monolith..."
+          # Try direct download from latest release first to avoid cargo compile times
+          LATEST_URL=$(curl -s https://api.github.com/repos/Y2Z/monolith/releases/latest | jq -r '.assets[] | select(.name == "monolith-gnu-linux-x86_64") | .browser_download_url')
+          if [ -n "$LATEST_URL" ] && [ "$LATEST_URL" != "null" ]; then
+            curl -fL --retry 3 --retry-delay 2 -o /usr/local/bin/monolith "$LATEST_URL"
+            chmod +x /usr/local/bin/monolith
+          else
+            echo "GitHub API rate limited or failed, falling back to cargo..."
             cargo install monolith --locked --root /tmp/monolith-cargo
-            sudo cp /tmp/monolith-cargo/bin/monolith /usr/local/bin/monolith
-            sudo chmod +x /usr/local/bin/monolith
+            cp /tmp/monolith-cargo/bin/monolith /usr/local/bin/monolith
+            chmod +x /usr/local/bin/monolith
           fi
+          monolith -V
 
-      - name: Configure system-wide reputable adblocker (StevenBlack hosts)
-        run: |
-          curl -sSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | sudo tee -a /etc/hosts > /dev/null
-
-      - name: Restore adaptive throttle state
-        id: restore-throttle
-        continue-on-error: true
-        uses: actions/cache/restore@v4
-        with:
-          path: throttle_state.json
-          key: throttle-state-${{ github.run_id }}-none
-          restore-keys: |
-            throttle-state-${{ github.run_id }}-
-
-      - name: Archive Action
+      - name: Archive URLs Sequentially
         id: archive
         env:
-          URL: ${{ matrix.url }}
           RENDER_JS: ${{ inputs.render_js }}
-          JOB_INDEX: ${{ strategy.job-index }}
-          UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         run: |
           set -uo pipefail
           mkdir -p snapshots
-          output_file="snapshots/url_${JOB_INDEX}.html"
 
-          BASE_DELAYS=(1 2 4 8 15 30)
-          if [ -f throttle_state.json ]; then
-            LEVEL=$(jq -r '.level // 1' throttle_state.json 2>/dev/null || echo 1)
-          else
-            LEVEL=1
-          fi
-          case "$LEVEL" in ''|*[!0-9]*) LEVEL=1 ;; esac
-          [ "$LEVEL" -lt 0 ] && LEVEL=0
-          [ "$LEVEL" -gt 5 ] && LEVEL=5
+          mapfile -t URLS < <(jq -r '.[]' urls.json)
+          TOTAL=${#URLS[@]}
+          echo "Total URLs to process: $TOTAL"
 
-          BASE_DELAY=${BASE_DELAYS[$LEVEL]}
-          JITTER=$(( RANDOM % (BASE_DELAY + 2) ))
-          PACING_DELAY=$((BASE_DELAY + JITTER))
-          sleep "$PACING_DELAY"
+          SUCCESS_COUNT=0
+          FAIL_COUNT=0
+          CURRENT_DELAY=3 # Start with a safe 3-second baseline delay
+
+          # Reputable, modern User-Agents to rotate and avoid fingerprinting
+          UAS=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0"
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0"
+          )
 
           is_bad_response() {
             local f="$1"
@@ -162,84 +142,114 @@ jobs:
             local size
             size=$(wc -c < "$f")
             if [ "$size" -lt 2048 ]; then return 0; fi
-            if [ "$size" -lt 51200 ] && grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue' "$f"; then
+            # Check for common Layer 7 WAF / DDoS protection strings
+            if [ "$size" -lt 51200 ] && grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|captcha|ray id|ddos protection' "$f"; then
               return 0
             fi
             return 1
           }
 
-          retry_delay() {
-            echo $(( 2 + RANDOM % 4 ))
-          }
+          for i in "${!URLS[@]}"; do
+            URL="${URLS[$i]}"
+            UA="${UAS[$RANDOM % ${#UAS[@]}]}"
+            
+            echo "================================================================"
+            echo "Processing [$((i+1))/$TOTAL]: $URL"
+            
+            # Add jitter (0-2s) to baseline delay to mimic human behavior and defeat bot detection
+            JITTER=$(( RANDOM % 3 ))
+            ACTUAL_DELAY=$(( CURRENT_DELAY + JITTER ))
+            echo "Waiting ${ACTUAL_DELAY}s before request (Layer 7 protection active)..."
+            sleep "$ACTUAL_DELAY"
 
-          SUCCESS=false
+            # Sanitize filename safely
+            SAFE_NAME=$(echo "$URL" | sed -e 's/[^A-Za-z0-9._-]/_/g' | cut -c 1-100)
+            output_file="snapshots/${SAFE_NAME}_${i}.html"
 
-          if [ "$RENDER_JS" = "true" ]; then
-            dom_file=$(mktemp)
-            for attempt in 1 2 3; do
-              if timeout 60s google-chrome \
-                  --headless=new \
-                  --disable-gpu \
-                  --no-sandbox \
-                  --disable-dev-shm-usage \
-                  --hide-scrollbars \
-                  --incognito \
-                  --window-size=1920,1080 \
-                  --run-all-compositor-stages-before-draw \
-                  --virtual-time-budget=12000 \
-                  --blink-settings=imagesEnabled=true \
-                  --disable-blink-features=AutomationControlled \
-                  --lang="en-US" \
-                  --user-agent="$UA" \
-                  --dump-dom "$URL" > "$dom_file" 2>/dev/null; then
-                if ! is_bad_response "$dom_file"; then break; fi
-              fi
-              if [ "$attempt" -lt 3 ]; then sleep $(retry_delay); fi
-            done
+            SUCCESS=false
+            ATTEMPT=1
+            MAX_ATTEMPTS=3
 
-            for attempt in 1 2 3; do
-              if timeout 60s monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" < "$dom_file"; then
-                if ! is_bad_response "$output_file"; then
-                  SUCCESS=true
-                  break
+            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+              echo "Attempt $ATTEMPT of $MAX_ATTEMPTS for $URL"
+              
+              if [ "$RENDER_JS" = "true" ]; then
+                dom_file=$(mktemp)
+                if timeout 60s google-chrome \
+                    --headless=new \
+                    --disable-gpu \
+                    --no-sandbox \
+                    --disable-dev-shm-usage \
+                    --hide-scrollbars \
+                    --incognito \
+                    --window-size=1920,1080 \
+                    --run-all-compositor-stages-before-draw \
+                    --virtual-time-budget=12000 \
+                    --blink-settings=imagesEnabled=true \
+                    --disable-blink-features=AutomationControlled \
+                    --lang="en-US" \
+                    --user-agent="$UA" \
+                    --dump-dom "$URL" > "$dom_file" 2>/dev/null; then
+                  
+                  if ! is_bad_response "$dom_file"; then
+                    if timeout 60s monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" < "$dom_file" 2>/dev/null; then
+                      if ! is_bad_response "$output_file"; then
+                        SUCCESS=true
+                      fi
+                    fi
+                  fi
+                fi
+                rm -f "$dom_file"
+              else
+                if timeout 45s monolith "$URL" -I -e -u "$UA" -o "$output_file" 2>/dev/null; then
+                  if ! is_bad_response "$output_file"; then
+                    SUCCESS=true
+                  fi
                 fi
               fi
-              if [ "$attempt" -lt 3 ]; then sleep $(retry_delay); fi
-            done
-            rm -f "$dom_file"
-          else
-            for attempt in 1 2 3; do
-              if timeout 45s monolith "$URL" -I -e -u "$UA" -o "$output_file"; then
-                if ! is_bad_response "$output_file"; then
-                  SUCCESS=true
-                  break
+
+              if [ "$SUCCESS" = "true" ]; then
+                echo "✅ Successfully archived $URL"
+                # Decrease delay on success to keep workflow fast, but never below 2s
+                CURRENT_DELAY=$(( CURRENT_DELAY > 2 ? CURRENT_DELAY - 1 : 2 ))
+                break
+              else
+                echo "⚠️ Failed or blocked on attempt $ATTEMPT for $URL"
+                ATTEMPT=$((ATTEMPT + 1))
+                # Exponential backoff on failure (e.g., 3 -> 8 -> 18 -> 38)
+                CURRENT_DELAY=$(( CURRENT_DELAY * 2 + 2 ))
+                # Cap max delay at 60 seconds to prevent workflow timeout
+                [ $CURRENT_DELAY -gt 60 ] && CURRENT_DELAY=60
+                
+                if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
+                  echo "Backing off: Waiting ${CURRENT_DELAY}s before retry..."
+                  sleep "$CURRENT_DELAY"
                 fi
               fi
-              if [ "$attempt" -lt 3 ]; then sleep $(retry_delay); fi
             done
-          fi
 
-          if [ "$SUCCESS" = "true" ]; then
-            NEW_LEVEL=$((LEVEL - 1))
-            [ "$NEW_LEVEL" -lt 0 ] && NEW_LEVEL=0
-          else
-            NEW_LEVEL=$((LEVEL + 2))
-            [ "$NEW_LEVEL" -gt 5 ] && NEW_LEVEL=5
-          fi
-          jq -n --argjson level "$NEW_LEVEL" '{level: $level}' > throttle_state.json
+            if [ "$SUCCESS" = "true" ]; then
+              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+            else
+              FAIL_COUNT=$((FAIL_COUNT + 1))
+              echo "::warning::Failed to archive after $MAX_ATTEMPTS attempts: $URL"
+              # Crucial: Do NOT exit 1 here. We must continue to the next URL.
+            fi
+          done
 
-          if [ "$SUCCESS" != "true" ]; then
-            echo "::warning::Failed to archive $URL"
-            exit 1
+          echo "archive_success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "archive_fail_count=$FAIL_COUNT" >> "$GITHUB_OUTPUT"
+          
+          echo "================================================================"
+          echo "ARCHIVE SUMMARY"
+          echo "Total URLs: $TOTAL"
+          echo "Successful: $SUCCESS_COUNT"
+          echo "Failed: $FAIL_COUNT"
+          echo "================================================================"
+          
+          if [ $FAIL_COUNT -gt 0 ]; then
+            echo "::warning::$FAIL_COUNT out of $TOTAL URLs failed to archive. Workflow continues."
           fi
-
-      - name: Save adaptive throttle state
-        if: always()
-        continue-on-error: true
-        uses: actions/cache/save@v4
-        with:
-          path: throttle_state.json
-          key: throttle-state-${{ github.run_id }}-${{ strategy.job-index }}-${{ github.run_attempt }}
 
       - name: Commit and Push Changes
         if: ${{ inputs.commit_results == 'true' }}
@@ -250,18 +260,26 @@ jobs:
           git add snapshots/
 
           if git diff --cached --quiet; then
+            echo "No changes to commit."
             exit 0
           fi
 
-          git commit -m "Add snapshot archive for job ${{ strategy.job-index }} [skip ci]"
+          git commit -m "chore: add snapshot archives [skip ci]"
 
+          TARGET_BRANCH="${{ github.ref_name }}"
+          # Robust push with rebase to handle concurrent workflow runs gracefully
           for attempt in 1 2 3 4 5; do
-            git fetch origin main
-            if git rebase origin/main && git push origin HEAD:main; then
+            git fetch origin "$TARGET_BRANCH"
+            if git rebase origin/"$TARGET_BRANCH" && git push origin HEAD:"$TARGET_BRANCH"; then
+              echo "✅ Successfully pushed changes."
               exit 0
             else
+              echo "Push failed, attempt $attempt. Retrying..."
               git rebase --abort || true
             fi
             sleep $(( 2 + RANDOM % 4 ))
           done
-          exit 1
+          
+          echo "::warning::Failed to push changes after 5 attempts. Manual intervention may be required."
+          # Crucial: Exit 0 to ensure the workflow is marked as successful overall
+          exit 0
