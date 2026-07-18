@@ -58,7 +58,7 @@ jobs:
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          # Normalise: strip CR (CRLF), trim whitespace, drop blank lines, de-duplicate
+          # Normalise: strip CR, trim whitespace, drop blank lines, de-duplicate
           sed -i 's/\r$//' urls_to_process.txt
           sed -i 's/^[[:space:]]*//; s/[[:space:]]*$//' urls_to_process.txt
           sed -i '/^[[:space:]]*$/d' urls_to_process.txt
@@ -68,7 +68,6 @@ jobs:
           COUNT=$(wc -l < urls_to_process.txt | tr -d ' ')
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
 
-          # Base64 encode to safely bypass GitHub Actions multiline output limits
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
           echo "urls_json=$(echo "$JSON_ARRAY" | base64 -w 0)" >> "$GITHUB_OUTPUT"
 
@@ -98,14 +97,11 @@ jobs:
         if: steps.cache-monolith.outputs.cache-hit != 'true'
         run: |
           set -uo pipefail
-          echo "Installing monolith..."
-          # Try direct download from latest release first to avoid cargo compile times
           LATEST_URL=$(curl -s https://api.github.com/repos/Y2Z/monolith/releases/latest | jq -r '.assets[] | select(.name == "monolith-gnu-linux-x86_64") | .browser_download_url')
           if [ -n "$LATEST_URL" ] && [ "$LATEST_URL" != "null" ]; then
             curl -fL --retry 3 --retry-delay 2 -o /usr/local/bin/monolith "$LATEST_URL"
             chmod +x /usr/local/bin/monolith
           else
-            echo "GitHub API rate limited or failed, falling back to cargo..."
             cargo install monolith --locked --root /tmp/monolith-cargo
             cp /tmp/monolith-cargo/bin/monolith /usr/local/bin/monolith
             chmod +x /usr/local/bin/monolith
@@ -126,9 +122,8 @@ jobs:
 
           SUCCESS_COUNT=0
           FAIL_COUNT=0
-          CURRENT_DELAY=3 # Start with a safe 3-second baseline delay
+          CURRENT_DELAY=2 # Start with a fast, safe 2-second baseline delay
 
-          # Reputable, modern User-Agents to rotate and avoid fingerprinting
           UAS=(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -138,14 +133,15 @@ jobs:
 
           is_bad_response() {
             local f="$1"
+            # Empty file is definitely a failure
             [ ! -s "$f" ] && return 0
-            local size
-            size=$(wc -c < "$f")
-            if [ "$size" -lt 2048 ]; then return 0; fi
-            # Check for common Layer 7 WAF / DDoS protection strings
-            if [ "$size" -lt 51200 ] && grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|captcha|ray id|ddos protection' "$f"; then
+            
+            # Check for known WAF / Block page signatures ONLY
+            # Removed the arbitrary size check that falsely flagged tiny legitimate sites like example.com
+            if grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|captcha|ray id|ddos protection|access denied|error 403|error 429|blocked' "$f" >/dev/null 2>&1; then
               return 0
             fi
+            
             return 1
           }
 
@@ -156,13 +152,11 @@ jobs:
             echo "================================================================"
             echo "Processing [$((i+1))/$TOTAL]: $URL"
             
-            # Add jitter (0-2s) to baseline delay to mimic human behavior and defeat bot detection
-            JITTER=$(( RANDOM % 3 ))
+            JITTER=$(( RANDOM % 2 ))
             ACTUAL_DELAY=$(( CURRENT_DELAY + JITTER ))
             echo "Waiting ${ACTUAL_DELAY}s before request (Layer 7 protection active)..."
             sleep "$ACTUAL_DELAY"
 
-            # Sanitize filename safely
             SAFE_NAME=$(echo "$URL" | sed -e 's/[^A-Za-z0-9._-]/_/g' | cut -c 1-100)
             output_file="snapshots/${SAFE_NAME}_${i}.html"
 
@@ -210,16 +204,15 @@ jobs:
 
               if [ "$SUCCESS" = "true" ]; then
                 echo "✅ Successfully archived $URL"
-                # Decrease delay on success to keep workflow fast, but never below 2s
-                CURRENT_DELAY=$(( CURRENT_DELAY > 2 ? CURRENT_DELAY - 1 : 2 ))
+                # Reset delay to baseline on success to keep workflow lightning fast
+                CURRENT_DELAY=2
                 break
               else
                 echo "⚠️ Failed or blocked on attempt $ATTEMPT for $URL"
                 ATTEMPT=$((ATTEMPT + 1))
-                # Exponential backoff on failure (e.g., 3 -> 8 -> 18 -> 38)
-                CURRENT_DELAY=$(( CURRENT_DELAY * 2 + 2 ))
-                # Cap max delay at 60 seconds to prevent workflow timeout
-                [ $CURRENT_DELAY -gt 60 ] && CURRENT_DELAY=60
+                # Exponential backoff, but capped at 15s to prevent massive delays
+                CURRENT_DELAY=$(( CURRENT_DELAY * 2 + 1 ))
+                [ $CURRENT_DELAY -gt 15 ] && CURRENT_DELAY=15
                 
                 if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
                   echo "Backing off: Waiting ${CURRENT_DELAY}s before retry..."
@@ -233,7 +226,6 @@ jobs:
             else
               FAIL_COUNT=$((FAIL_COUNT + 1))
               echo "::warning::Failed to archive after $MAX_ATTEMPTS attempts: $URL"
-              # Crucial: Do NOT exit 1 here. We must continue to the next URL.
             fi
           done
 
@@ -241,15 +233,17 @@ jobs:
           echo "archive_fail_count=$FAIL_COUNT" >> "$GITHUB_OUTPUT"
           
           echo "================================================================"
-          echo "ARCHIVE SUMMARY"
-          echo "Total URLs: $TOTAL"
-          echo "Successful: $SUCCESS_COUNT"
-          echo "Failed: $FAIL_COUNT"
+          echo "ARCHIVE SUMMARY: $SUCCESS_COUNT succeeded, $FAIL_COUNT failed out of $TOTAL"
           echo "================================================================"
-          
-          if [ $FAIL_COUNT -gt 0 ]; then
-            echo "::warning::$FAIL_COUNT out of $TOTAL URLs failed to archive. Workflow continues."
-          fi
+
+      - name: Upload Archive Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webpage-snapshots-${{ github.run_id }}
+          path: snapshots/
+          retention-days: 5
+          if-no-files-found: warn
 
       - name: Commit and Push Changes
         if: ${{ inputs.commit_results == 'true' }}
@@ -267,7 +261,6 @@ jobs:
           git commit -m "chore: add snapshot archives [skip ci]"
 
           TARGET_BRANCH="${{ github.ref_name }}"
-          # Robust push with rebase to handle concurrent workflow runs gracefully
           for attempt in 1 2 3 4 5; do
             git fetch origin "$TARGET_BRANCH"
             if git rebase origin/"$TARGET_BRANCH" && git push origin HEAD:"$TARGET_BRANCH"; then
@@ -277,9 +270,8 @@ jobs:
               echo "Push failed, attempt $attempt. Retrying..."
               git rebase --abort || true
             fi
-            sleep $(( 2 + RANDOM % 4 ))
+            sleep $(( 2 + RANDOM % 3 ))
           done
           
-          echo "::warning::Failed to push changes after 5 attempts. Manual intervention may be required."
-          # Crucial: Exit 0 to ensure the workflow is marked as successful overall
+          echo "::warning::Failed to push changes after 5 attempts."
           exit 0
