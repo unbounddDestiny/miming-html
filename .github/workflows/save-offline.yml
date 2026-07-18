@@ -69,7 +69,7 @@ jobs:
           echo "matrix=${JSON_ARRAY}" >> $GITHUB_OUTPUT
           echo "URLs to process: ${JSON_ARRAY}"
 
-  # STEP 2: Run isolated parallel workers (one URL per worker)
+  # STEP 2: Run isolated sequential workers (one URL at a time)
   archive:
     needs: prep-urls
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
       matrix:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
       fail-fast: true
-      max-parallel: 4 # Anti-bot mitigation: Don't hammer the site with 120 servers all at once
+      max-parallel: 1 # FIX: Changed from 4 to 1 to prevent hammering servers simultaneously
     
     name: "Archive: ${{ matrix.url }}"
     
@@ -116,25 +116,25 @@ jobs:
           echo "== Archiving target URL: $URL =="
           output_file="snapshots/url_${JOB_INDEX}.html"
 
-          # Anti-bot step: Introduce a subtle, randomized delay between 1 and 6 seconds 
-          # so parallel workers don't ping the webserver at the exact same millisecond.
-          SHUFFLE_SLEEP=$((1 + RANDOM % 6))
-          echo "Shuffling execution timing to bypass edge blocks. Waiting ${SHUFFLE_SLEEP}s..."
+          # FIX: Increased delay to a safer range (e.g., 5 to 15 seconds)
+          # This acts as a rate-limiting courtesy buffer between requests.
+          SHUFFLE_SLEEP=$((5 + RANDOM % 11))
+          echo "Polite crawler pause: Waiting ${SHUFFLE_SLEEP}s before making the request..."
           sleep $SHUFFLE_SLEEP
 
-          # Use coreutils timeout command set directly to 10 seconds
+          # Use coreutils timeout command set directly to 30 seconds (increased from 10s to accommodate slower loads)
           if [ "$RENDER_JS" = "true" ]; then
-            echo "Pre-rendering with modern headless Chrome (10s max restriction)..."
-            timeout 10s google-chrome \
+            echo "Pre-rendering with modern headless Chrome (30s max restriction)..."
+            timeout 30s google-chrome \
               --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage \
               --hide-scrollbars --screen-info={1920x1080} \
-              --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
+              --run-all-compositor-stages-before-draw --virtual-time-budget=25000 \
               --user-agent="$UA" \
               --dump-dom "$URL" \
               | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" || exit 124
           else
-            echo "Archiving with monolith directly (10s max restriction)..."
-            timeout 10s monolith "$URL" -I -e -u "$UA" -o "$output_file" || exit 124
+            echo "Archiving with monolith directly (30s max restriction)..."
+            timeout 30s monolith "$URL" -I -e -u "$UA" -o "$output_file" || exit 124
           fi
 
           if [ -s "$output_file" ]; then
@@ -149,7 +149,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
 
-  # Orchestrator fallback that acts if a 10s step limitation is breached
+  # Orchestrator fallback that acts if a step limitation is breached
   handle-retry:
     needs: archive
     runs-on: ubuntu-latest
@@ -162,7 +162,7 @@ jobs:
             const currentAttempt = parseInt(context.payload.inputs.run_attempt_count || "1", 10);
             if (currentAttempt < 3) {
               const nextAttempt = currentAttempt + 1;
-              console.log(`A matrix snapshot exceeded the 10s limit or dropped. Re-dispatching workflow execution (Attempt ${nextAttempt}/3)...`);
+              console.log(`A matrix snapshot exceeded the time limit or dropped. Re-dispatching workflow execution (Attempt ${nextAttempt}/3)...`);
               
               await github.rest.actions.createWorkflowDispatch({
                 owner: context.repo.owner,
@@ -178,7 +178,7 @@ jobs:
                 }
               });
             } else {
-              core.setFailed("Workflow execution timed out over 10 seconds across 3 full separate structural run updates. Halting loop.");
+              core.setFailed("Workflow execution timed out across 3 full separate structural run updates. Halting loop.");
             }
 
   # STEP 3: Collect all completed snapshots and package them
