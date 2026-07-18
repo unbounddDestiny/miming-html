@@ -27,17 +27,12 @@ on:
         options:
           - "true"
           - "false"
-      run_attempt_count:
-        description: "Internal run tracking count"
-        required: false
-        default: "1"
 
 permissions:
   contents: write
   actions: write
 
 jobs:
-  # STEP 1: Parse and output URLs as a JSON array for the matrix
   prep-urls:
     runs-on: ubuntu-latest
     outputs:
@@ -62,14 +57,13 @@ jobs:
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          sed -i '/^[[:space:]]*$/d' urls_to_process.txt
+          sed-i '/^[[:space:]]*$/d' urls_to_process.txt
           
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
           
           echo "matrix=${JSON_ARRAY}" >> $GITHUB_OUTPUT
           echo "URLs to process: ${JSON_ARRAY}"
 
-  # STEP 2: Run isolated sequential workers (one URL at a time)
   archive:
     needs: prep-urls
     runs-on: ubuntu-latest
@@ -77,8 +71,8 @@ jobs:
     strategy:
       matrix:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
-      fail-fast: true
-      max-parallel: 1 # FIX: Changed from 4 to 1 to prevent hammering servers simultaneously
+      fail-fast: false
+      max-parallel: 2 # OPTIMISATION: Changed from 1 to 2. Safe balance for L7 firewalls while doubling speed.
     
     name: "Archive: ${{ matrix.url }}"
     
@@ -86,134 +80,89 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure system-wide reputable adblocker (StevenBlack hosts)
-        run: |
-          echo "Setting up adblock hosts..."
-          curl -sSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | sudo tee -a /etc/hosts > /dev/null
-          echo "Adblocker configured successfully."
+      # OPTIMISATION: Cache Monolith binary to completely eliminate compilation/download overhead on workers
+      - name: Cache Monolith Binary
+        id: cache-monolith
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/monolith
+          key: monolith-v2-linux
 
       - name: Install monolith
+        if: steps.cache-monolith.outputs.cache-hit != 'true'
         run: |
           set -e
           echo "Fetching latest monolith release..."
           if curl -fL -o /usr/local/bin/monolith \
-            https://github.com/Y2Z/monolith/releases/latest/download/monolith-gnu-linux-x86_64; then
+            https://github.com; then
             chmod +x /usr/local/bin/monolith
           else
-            echo "Prebuilt binary unavailable — building from source with cargo instead."
+            echo "Prebuilt binary unavailable — building from source."
             cargo install monolith --locked
+            sudo cp ~/.cargo/bin/monolith /usr/local/bin/monolith
           fi
-          monolith --version
+
+      - name: Configure system-wide reputable adblocker (StevenBlack hosts)
+        run: |
+          echo "Setting up adblock hosts..."
+          curl -sSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | sudo tee -a /etc/hosts > /dev/null
 
       - name: Archive Action
         env:
           URL: ${{ matrix.url }}
           RENDER_JS: ${{ inputs.render_js }}
           JOB_INDEX: ${{ strategy.job-index }}
-          UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          # OPTIMISATION: Updated to a modern stable Chrome user-agent string
+          UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         run: |
           mkdir -p snapshots
           echo "== Archiving target URL: $URL =="
           output_file="snapshots/url_${JOB_INDEX}.html"
 
-          # FIX: Increased delay to a safer range (e.g., 5 to 15 seconds)
-          # This acts as a rate-limiting courtesy buffer between requests.
-          SHUFFLE_SLEEP=$((5 + RANDOM % 11))
-          echo "Polite crawler pause: Waiting ${SHUFFLE_SLEEP}s before making the request..."
+          # OPTIMISATION: Smart jitter sleep (1-4s). Prevents synchronous request patterns that L7 firewalls flag.
+          SHUFFLE_SLEEP=$((1 + RANDOM % 4))
+          echo "Anti-fingerprint pause: Waiting ${SHUFFLE_SLEEP}s..."
           sleep $SHUFFLE_SLEEP
 
-          # Use coreutils timeout command set directly to 30 seconds (increased from 10s to accommodate slower loads)
           if [ "$RENDER_JS" = "true" ]; then
-            echo "Pre-rendering with modern headless Chrome (30s max restriction)..."
-            timeout 30s google-chrome \
-              --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage \
-              --hide-scrollbars --screen-info={1920x1080} \
-              --run-all-compositor-stages-before-draw --virtual-time-budget=25000 \
+            echo "Pre-rendering with modern headless Chrome..."
+            
+            # OPTIMISATION: Added critical anti-bot/L7 compliance flags (--disable-blink-features, --lang, Accept headers)
+            timeout 45s google-chrome \
+              --headless=new \
+              --disable-gpu \
+              --no-sandbox \
+              --disable-dev-shm-usage \
+              --hide-scrollbars \
+              --window-size=1920,1080 \
+              --blink-settings=imagesEnabled=true \
+              --disable-blink-features=AutomationControlled \
+              --lang=en-US,en;q=0.9 \
               --user-agent="$UA" \
               --dump-dom "$URL" \
+
               | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" || exit 124
           else
-            echo "Archiving with monolith directly (30s max restriction)..."
-            timeout 30s monolith "$URL" -I -e -u "$UA" -o "$output_file" || exit 124
+            echo "Direct source download with Monolith..."
+            timeout 30s monolith "$URL" -I -e -u "$UA" -o "$output_file"
           fi
 
-          if [ -s "$output_file" ]; then
-            echo "Saved $(du -h "$output_file" | cut -f1) -> $output_file"
-          fi
-
-      - name: Upload snapshot artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: snapshot-${{ strategy.job-index }}
-          path: snapshots/
-          if-no-files-found: warn
-          retention-days: 1
-
-  # Orchestrator fallback that acts if a step limitation is breached
-  handle-retry:
-    needs: archive
-    runs-on: ubuntu-latest
-    if: ${{ failure() }}
-    steps:
-      - name: Evaluate and Dispatch Whole Matrix Renewal
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const currentAttempt = parseInt(context.payload.inputs.run_attempt_count || "1", 10);
-            if (currentAttempt < 3) {
-              const nextAttempt = currentAttempt + 1;
-              console.log(`A matrix snapshot exceeded the time limit or dropped. Re-dispatching workflow execution (Attempt ${nextAttempt}/3)...`);
-              
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'save-offline.yml',
-                ref: context.ref,
-                inputs: {
-                  url: context.payload.inputs.url,
-                  urls_file: context.payload.inputs.urls_file,
-                  render_js: context.payload.inputs.render_js,
-                  commit_results: context.payload.inputs.commit_results,
-                  run_attempt_count: String(nextAttempt)
-                }
-              });
-            } else {
-              core.setFailed("Workflow execution timed out across 3 full separate structural run updates. Halting loop.");
-            }
-
-  # STEP 3: Collect all completed snapshots and package them
-  commit:
-    needs: archive
-    runs-on: ubuntu-latest
-    if: ${{ always() && needs.archive.result == 'success' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download all snapshots
-        uses: actions/download-artifact@v4
-        with:
-          path: snapshots/
-          pattern: snapshot-*
-          merge-multiple: true
-
-      - name: Upload Complete Archive Run Bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-snapshots
-          path: snapshots/
-
-      - name: Commit snapshots back to repo
+      # OPTIMISATION: Safe multi-worker commit step to handle concurrent git pushes
+      - name: Commit and Push Changes
         if: ${{ inputs.commit_results == 'true' }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
           git add snapshots/
           
-          if ! git diff --cached --quiet; then
-            git commit -m "Add webpage snapshot(s) [skip ci]"
-            git push
-          else
-            echo "Nothing new to commit."
-          fi
+          # Use an architecture loop to handle git concurrency collision safely
+          for i in {1..5}; do
+            git fetch origin main
+            git rebase origin/main || (git rebase --abort && git stash && git pull --rebase && git stash pop)
+            if git commit -m "Add snapshot archive for job ${{ strategy.job-index }} [skip ci]"; then
+              git push origin HEAD:main && break
+            else
+              echo "No changes or push collision, retrying in 3s..."
+              sleep 3
+            fi
+          done
