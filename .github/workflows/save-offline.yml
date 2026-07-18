@@ -122,7 +122,7 @@ jobs:
 
           SUCCESS_COUNT=0
           FAIL_COUNT=0
-          CURRENT_DELAY=2 # Start with a fast, safe 2-second baseline delay
+          CURRENT_DELAY=2 # Fast, safe 2-second baseline delay
 
           UAS=(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -133,32 +133,48 @@ jobs:
 
           is_bad_response() {
             local f="$1"
-            # Empty file is definitely a failure
-            [ ! -s "$f" ] && return 0
+            [ ! -s "$f" ] && return 0 # Empty file is definitely a failure
             
-            # Check for known WAF / Block page signatures ONLY
-            # Removed the arbitrary size check that falsely flagged tiny legitimate sites like example.com
-            if grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|captcha|ray id|ddos protection|access denied|error 403|error 429|blocked' "$f" >/dev/null 2>&1; then
+            local size=$(wc -c < "$f" | tr -d ' ')
+            
+            # SMART CHECK: Real webpages are almost always > 15KB. 
+            # WAF/Block pages are almost always < 10KB.
+            if [ "$size" -gt 15000 ]; then
+              # Only fail large files if they have explicit, undeniable WAF markers
+              if grep -qiE 'just a moment|cf-browser-verification|please verify you are a human' "$f" >/dev/null 2>&1; then
+                return 0
+              fi
+              return 1 # It's a good, large file
+            fi
+            
+            # For smaller files, check a strict set of actual WAF signatures
+            # (Removed generic words like "blocked" or "captcha" that appear in normal JS)
+            if grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|ddos protection|access denied|error 403|error 429' "$f" >/dev/null 2>&1; then
               return 0
             fi
             
-            return 1
+            return 1 # Good file
           }
 
           for i in "${!URLS[@]}"; do
             URL="${URLS[$i]}"
             UA="${UAS[$RANDOM % ${#UAS[@]}]}"
             
+            # Create clean, ordered filename: 001_react.dev.html
+            ORDER=$(printf "%03d" $((i+1)))
+            # Extract domain only (e.g., https://www.react.dev/path -> react.dev)
+            DOMAIN=$(echo "$URL" | sed -e 's/https\?:\/\///' -e 's/\/.*//' -e 's/^www\.//')
+            SAFE_NAME=$(echo "$DOMAIN" | sed -e 's/[^A-Za-z0-9.-]/_/g' | cut -c 1-30)
+            output_file="snapshots/${ORDER}_${SAFE_NAME}.html"
+            
             echo "================================================================"
-            echo "Processing [$((i+1))/$TOTAL]: $URL"
+            echo "Processing [$ORDER/$TOTAL]: $URL"
+            echo "Output file: $output_file"
             
             JITTER=$(( RANDOM % 2 ))
             ACTUAL_DELAY=$(( CURRENT_DELAY + JITTER ))
             echo "Waiting ${ACTUAL_DELAY}s before request (Layer 7 protection active)..."
             sleep "$ACTUAL_DELAY"
-
-            SAFE_NAME=$(echo "$URL" | sed -e 's/[^A-Za-z0-9._-]/_/g' | cut -c 1-100)
-            output_file="snapshots/${SAFE_NAME}_${i}.html"
 
             SUCCESS=false
             ATTEMPT=1
@@ -204,15 +220,13 @@ jobs:
 
               if [ "$SUCCESS" = "true" ]; then
                 echo "✅ Successfully archived $URL"
-                # Reset delay to baseline on success to keep workflow lightning fast
-                CURRENT_DELAY=2
+                CURRENT_DELAY=2 # Reset delay to baseline on success to keep it fast
                 break
               else
                 echo "⚠️ Failed or blocked on attempt $ATTEMPT for $URL"
                 ATTEMPT=$((ATTEMPT + 1))
-                # Exponential backoff, but capped at 15s to prevent massive delays
                 CURRENT_DELAY=$(( CURRENT_DELAY * 2 + 1 ))
-                [ $CURRENT_DELAY -gt 15 ] && CURRENT_DELAY=15
+                [ $CURRENT_DELAY -gt 15 ] && CURRENT_DELAY=15 # Cap max delay at 15s
                 
                 if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
                   echo "Backing off: Waiting ${CURRENT_DELAY}s before retry..."
