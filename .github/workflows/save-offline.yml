@@ -30,6 +30,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   # STEP 1: Parse and output URLs as a JSON array for the matrix
@@ -49,7 +50,6 @@ jobs:
         run: |
           :> urls_to_process.txt
 
-          # Process the multiline input value directly
           if [ -n "$URL_INPUT" ]; then
             echo "$URL_INPUT" >> urls_to_process.txt
           fi
@@ -58,10 +58,8 @@ jobs:
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          # Clean up any potential empty lines or spaces
           sed -i '/^[[:space:]]*$/d' urls_to_process.txt
           
-          # Convert the flat list of URLs to a valid JSON array format
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
           
           echo "matrix=${JSON_ARRAY}" >> $GITHUB_OUTPUT
@@ -142,14 +140,11 @@ jobs:
 
             echo "Attempt $attempt failed."
             attempt=$((attempt + 1))
-            if [ $attempt -le $MAX_ATTEMPTS ]; then
-              echo "Waiting 5 seconds before reloading..."
-              sleep 5
-            fi
           done
 
           if [ "$success" = "false" ]; then
-            echo "::warning::Failed to archive webpage after $MAX_ATTEMPTS attempts."
+            echo "Failed to archive webpage after $MAX_ATTEMPTS attempts."
+            exit 1
           fi
 
           if [ -s "$output_file" ]; then
@@ -157,6 +152,7 @@ jobs:
           fi
 
       - name: Upload snapshot artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: snapshot-${{ strategy.job-index }}
@@ -187,7 +183,7 @@ jobs:
           path: snapshots/
 
       - name: Commit snapshots back to repo
-        if: ${{ inputs.commit_results == 'true' }}
+        if: ${{ inputs.commit_results == 'true' && needs.archive.result == 'success' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
