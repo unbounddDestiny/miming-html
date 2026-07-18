@@ -77,7 +77,8 @@ jobs:
     strategy:
       matrix:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
-      fail-fast: true # Stops other matrix items immediately if one triggers the 10-second timeout
+      fail-fast: true
+      max-parallel: 4 # Anti-bot mitigation: Don't hammer the site with 120 servers all at once
     
     name: "Archive: ${{ matrix.url }}"
     
@@ -105,9 +106,6 @@ jobs:
           monolith --version
 
       - name: Archive Action
-        # Strictly enforces a hard ceiling. Since timeout-minutes only accepts integers,
-        # 1 minute is the lowest possible runner level value. To enforce an exact 10 second limit,
-        # we configure coreutils timeout directly inside the shell run command.
         env:
           URL: ${{ matrix.url }}
           RENDER_JS: ${{ inputs.render_js }}
@@ -118,12 +116,18 @@ jobs:
           echo "== Archiving target URL: $URL =="
           output_file="snapshots/url_${JOB_INDEX}.html"
 
+          # Anti-bot step: Introduce a subtle, randomized delay between 1 and 6 seconds 
+          # so parallel workers don't ping the webserver at the exact same millisecond.
+          SHUFFLE_SLEEP=$((1 + RANDOM % 6))
+          echo "Shuffling execution timing to bypass edge blocks. Waiting ${SHUFFLE_SLEEP}s..."
+          sleep $SHUFFLE_SLEEP
+
           # Use coreutils timeout command set directly to 10 seconds
           if [ "$RENDER_JS" = "true" ]; then
-            echo "Pre-rendering with headless Chrome (10s max restriction)..."
+            echo "Pre-rendering with modern headless Chrome (10s max restriction)..."
             timeout 10s google-chrome \
-              --headless --disable-gpu --no-sandbox --disable-dev-shm-usage \
-              --hide-scrollbars --window-size=1920,1080 \
+              --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage \
+              --hide-scrollbars --screen-info={1920x1080} \
               --run-all-compositor-stages-before-draw --virtual-time-budget=9000 \
               --user-agent="$UA" \
               --dump-dom "$URL" \
@@ -158,7 +162,7 @@ jobs:
             const currentAttempt = parseInt(context.payload.inputs.run_attempt_count || "1", 10);
             if (currentAttempt < 3) {
               const nextAttempt = currentAttempt + 1;
-              console.log(`A matrix snapshot exceeded the 10s limit. Re-dispatching workflow execution (Attempt ${nextAttempt}/3)...`);
+              console.log(`A matrix snapshot exceeded the 10s limit or dropped. Re-dispatching workflow execution (Attempt ${nextAttempt}/3)...`);
               
               await github.rest.actions.createWorkflowDispatch({
                 owner: context.repo.owner,
