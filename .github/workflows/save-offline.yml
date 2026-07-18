@@ -249,7 +249,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: webpage-snapshots-${{ github.run_id }}
+          name: all-snapshots
           path: snapshots/
           retention-days: 5
           if-no-files-found: warn
