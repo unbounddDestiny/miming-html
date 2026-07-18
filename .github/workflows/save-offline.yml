@@ -27,6 +27,16 @@ on:
         options:
           - "true"
           - "false"
+      max_parallel:
+        description: "Max concurrent archive jobs (fixed for the whole run - GH Actions can't change this mid-run, see notes)"
+        required: true
+        default: "2"
+        type: choice
+        options:
+          - "1"
+          - "2"
+          - "3"
+          - "4"
 
 permissions:
   contents: write
@@ -47,7 +57,8 @@ jobs:
           URL_INPUT: ${{ inputs.url }}
           URLS_FILE: ${{ inputs.urls_file }}
         run: |
-          :> urls_to_process.txt
+          set -uo pipefail
+          : > urls_to_process.txt
 
           if [ -n "$URL_INPUT" ]; then
             echo "$URL_INPUT" >> urls_to_process.txt
@@ -57,11 +68,19 @@ jobs:
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          sed-i '/^[[:space:]]*$/d' urls_to_process.txt
-          
+          # Normalise: strip CR (CRLF files), trim whitespace, drop blank
+          # lines, de-duplicate while preserving order. Fewer duplicate
+          # hits against the same target also means less chance of
+          # looking like abusive/bot traffic.
+          sed -i 's/\r$//' urls_to_process.txt
+          sed -i 's/^[[:space:]]*//; s/[[:space:]]*$//' urls_to_process.txt
+          sed -i '/^[[:space:]]*$/d' urls_to_process.txt
+          awk '!seen[$0]++' urls_to_process.txt > urls_dedup.txt
+          mv urls_dedup.txt urls_to_process.txt
+
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
-          
-          echo "matrix=${JSON_ARRAY}" >> $GITHUB_OUTPUT
+
+          echo "matrix=${JSON_ARRAY}" >> "$GITHUB_OUTPUT"
           echo "URLs to process: ${JSON_ARRAY}"
 
   archive:
@@ -72,97 +91,277 @@ jobs:
       matrix:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
       fail-fast: false
-      max-parallel: 2 # OPTIMISATION: Changed from 1 to 2. Safe balance for L7 firewalls while doubling speed.
-    
+      max-parallel: ${{ inputs.max_parallel }}
+
     name: "Archive: ${{ matrix.url }}"
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # OPTIMISATION: Cache Monolith binary to completely eliminate compilation/download overhead on workers
+      - name: Compute cache date bucket
+        id: datebucket
+        run: echo "value=$(date -u +'%Y-%m')" >> "$GITHUB_OUTPUT"
+
+      # Cache key is bucketed by month so a fixed binary doesn't get stuck
+      # forever once cached - it refreshes against upstream "latest" monthly.
       - name: Cache Monolith Binary
         id: cache-monolith
         uses: actions/cache@v4
         with:
           path: /usr/local/bin/monolith
-          key: monolith-v2-linux
+          key: monolith-linux-${{ steps.datebucket.outputs.value }}
 
       - name: Install monolith
         if: steps.cache-monolith.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          set -e
-          echo "Fetching latest monolith release..."
-          if curl -fL -o /usr/local/bin/monolith \
-            https://github.com; then
-            chmod +x /usr/local/bin/monolith
-          else
-            echo "Prebuilt binary unavailable — building from source."
-            cargo install monolith --locked
-            sudo cp ~/.cargo/bin/monolith /usr/local/bin/monolith
+          set -uo pipefail
+          echo "Looking up latest monolith release..."
+          ASSET_URL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/Y2Z/monolith/releases/latest \
+            | jq -r '.assets[] | select(.name == "monolith-gnu-linux-x86_64") | .browser_download_url')
+
+          if [ -n "$ASSET_URL" ]; then
+            echo "Downloading $ASSET_URL"
+            curl -fL -o /usr/local/bin/monolith "$ASSET_URL" && chmod +x /usr/local/bin/monolith
           fi
+
+          # Some prebuilt releases have been linked against an OpenSSL
+          # version newer runner images don't ship - smoke-test before
+          # trusting the binary, and fall back to building from source
+          # if it won't even run.
+          if [ ! -x /usr/local/bin/monolith ] || ! /usr/local/bin/monolith -V >/dev/null 2>&1; then
+            echo "Prebuilt binary unavailable or unusable - building from source."
+            cargo install monolith --locked --root /tmp/monolith-cargo
+            sudo cp /tmp/monolith-cargo/bin/monolith /usr/local/bin/monolith
+            sudo chmod +x /usr/local/bin/monolith
+          fi
+
+          monolith -V
 
       - name: Configure system-wide reputable adblocker (StevenBlack hosts)
         run: |
           echo "Setting up adblock hosts..."
           curl -sSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | sudo tee -a /etc/hosts > /dev/null
 
+      # Best-effort, cross-job "shared state" for the adaptive throttle
+      # below. GitHub Actions has no real live shared memory between
+      # matrix jobs, so this uses the cache service as a lightweight KV
+      # store: each job restores whatever the most recently *finished*
+      # job in this run saved, then saves its own result under a unique
+      # key. Because max-parallel staggers job starts, later jobs really
+      # do get to see how earlier ones went.
+      - name: Restore adaptive throttle state
+        id: restore-throttle
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: throttle_state.json
+          key: throttle-state-${{ github.run_id }}-none
+          restore-keys: |
+            throttle-state-${{ github.run_id }}-
+
       - name: Archive Action
+        id: archive
         env:
           URL: ${{ matrix.url }}
           RENDER_JS: ${{ inputs.render_js }}
           JOB_INDEX: ${{ strategy.job-index }}
-          # OPTIMISATION: Updated to a modern stable Chrome user-agent string
           UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         run: |
+          set -uo pipefail
           mkdir -p snapshots
-          echo "== Archiving target URL: $URL =="
           output_file="snapshots/url_${JOB_INDEX}.html"
+          echo "== Archiving target URL: $URL =="
 
-          # OPTIMISATION: Smart jitter sleep (1-4s). Prevents synchronous request patterns that L7 firewalls flag.
-          SHUFFLE_SLEEP=$((1 + RANDOM % 4))
-          echo "Anti-fingerprint pause: Waiting ${SHUFFLE_SLEEP}s..."
-          sleep $SHUFFLE_SLEEP
+          # ---------------------------------------------------------------
+          # Adaptive pacing (AIMD-style, shared across jobs via cache).
+          # LEVEL 0 = fastest/most aggressive, 5 = slowest/most cautious.
+          # A success eases LEVEL down by 1; a failure jumps it up by 2 -
+          # back off fast, recover slow, on purpose. Jitter is always
+          # added on top of the base delay for this level.
+          # ---------------------------------------------------------------
+          BASE_DELAYS=(1 2 4 8 15 30)
+
+          if [ -f throttle_state.json ]; then
+            LEVEL=$(jq -r '.level // 1' throttle_state.json 2>/dev/null || echo 1)
+          else
+            LEVEL=1
+          fi
+          case "$LEVEL" in ''|*[!0-9]*) LEVEL=1 ;; esac
+          [ "$LEVEL" -lt 0 ] && LEVEL=0
+          [ "$LEVEL" -gt 5 ] && LEVEL=5
+
+          BASE_DELAY=${BASE_DELAYS[$LEVEL]}
+          JITTER=$(( RANDOM % (BASE_DELAY + 2) ))
+          PACING_DELAY=$((BASE_DELAY + JITTER))
+          echo "Throttle level: $LEVEL -> pacing delay ${PACING_DELAY}s (base ${BASE_DELAY}s + jitter ${JITTER}s)"
+          sleep "$PACING_DELAY"
+
+          # ---- helpers ----
+          is_bad_response() {
+            # Heuristic only: empty/tiny output, or a small file that
+            # contains a common bot-challenge phrase. The size gate on
+            # the phrase check matters - a large legitimate page that
+            # merely *mentions* e.g. "captcha" shouldn't be flagged.
+            local f="$1"
+            [ ! -s "$f" ] && return 0
+            local size
+            size=$(wc -c < "$f")
+            if [ "$size" -lt 2048 ]; then
+              return 0
+            fi
+            if [ "$size" -lt 51200 ] && grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue' "$f"; then
+              return 0
+            fi
+            return 1
+          }
+
+          retry_delay() {
+            # Short, jittered gap for retrying the SAME url - kept
+            # deliberately minimal. This is separate from the cross-job
+            # pacing delay above, which handles the "back off harder
+            # when things are going badly" side of things.
+            echo $(( 2 + RANDOM % 4 ))
+          }
+
+          SUCCESS=false
 
           if [ "$RENDER_JS" = "true" ]; then
-            echo "Pre-rendering with modern headless Chrome..."
-            
-            # OPTIMISATION: Added critical anti-bot/L7 compliance flags (--disable-blink-features, --lang, Accept headers)
-            timeout 45s google-chrome \
-              --headless=new \
-              --disable-gpu \
-              --no-sandbox \
-              --disable-dev-shm-usage \
-              --hide-scrollbars \
-              --window-size=1920,1080 \
-              --blink-settings=imagesEnabled=true \
-              --disable-blink-features=AutomationControlled \
-              --lang=en-US,en;q=0.9 \
-              --user-agent="$UA" \
-              --dump-dom "$URL" \
+            dom_file=$(mktemp)
 
-              | monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" || exit 124
+            # Stage 1: render with headless Chrome. Kept separate from
+            # bundling so a retry doesn't have to re-launch Chrome if
+            # it's specifically the asset-bundling stage that's flaky.
+            for attempt in 1 2 3; do
+              echo "Render attempt ${attempt}/3..."
+              if timeout 60s google-chrome \
+                  --headless=new \
+                  --disable-gpu \
+                  --no-sandbox \
+                  --disable-dev-shm-usage \
+                  --hide-scrollbars \
+                  --incognito \
+                  --window-size=1920,1080 \
+                  --run-all-compositor-stages-before-draw \
+                  --virtual-time-budget=12000 \
+                  --blink-settings=imagesEnabled=true \
+                  --disable-blink-features=AutomationControlled \
+                  --lang="en-US" \
+                  --user-agent="$UA" \
+                  --dump-dom "$URL" > "$dom_file" 2>/tmp/chrome_stderr.log; then
+                if ! is_bad_response "$dom_file"; then
+                  break
+                fi
+                echo "Render output looked like a block/challenge page (or was too small)."
+              else
+                echo "Chrome render failed (exit $?)."
+                tail -n 20 /tmp/chrome_stderr.log 2>/dev/null || true
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                d=$(retry_delay)
+                echo "Retrying render in ${d}s..."
+                sleep "$d"
+              fi
+            done
+
+            # Stage 2: bundle the saved DOM with monolith.
+            for attempt in 1 2 3; do
+              echo "Bundle attempt ${attempt}/3..."
+              if timeout 60s monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" < "$dom_file"; then
+                if ! is_bad_response "$output_file"; then
+                  SUCCESS=true
+                  break
+                fi
+                echo "Bundled output looked like a block/challenge page (or was too small)."
+              else
+                echo "Monolith bundling failed (exit $?)."
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                d=$(retry_delay)
+                echo "Retrying bundle in ${d}s..."
+                sleep "$d"
+              fi
+            done
+
+            rm -f "$dom_file"
           else
-            echo "Direct source download with Monolith..."
-            timeout 30s monolith "$URL" -I -e -u "$UA" -o "$output_file"
+            for attempt in 1 2 3; do
+              echo "Direct fetch attempt ${attempt}/3..."
+              if timeout 45s monolith "$URL" -I -e -u "$UA" -o "$output_file"; then
+                if ! is_bad_response "$output_file"; then
+                  SUCCESS=true
+                  break
+                fi
+                echo "Fetched output looked like a block/challenge page (or was too small)."
+              else
+                echo "Monolith fetch failed (exit $?)."
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                d=$(retry_delay)
+                echo "Retrying in ${d}s..."
+                sleep "$d"
+              fi
+            done
           fi
 
-      # OPTIMISATION: Safe multi-worker commit step to handle concurrent git pushes
+          # ---- update shared throttle state for the next job to read ----
+          if [ "$SUCCESS" = "true" ]; then
+            NEW_LEVEL=$((LEVEL - 1))
+            [ "$NEW_LEVEL" -lt 0 ] && NEW_LEVEL=0
+            echo "Result: success. Lowering throttle level to $NEW_LEVEL."
+          else
+            NEW_LEVEL=$((LEVEL + 2))
+            [ "$NEW_LEVEL" -gt 5 ] && NEW_LEVEL=5
+            echo "Result: failure. Raising throttle level to $NEW_LEVEL."
+          fi
+          jq -n --argjson level "$NEW_LEVEL" '{level: $level}' > throttle_state.json
+
+          if [ "$SUCCESS" != "true" ]; then
+            echo "::warning::Failed to archive $URL after retries."
+            exit 1
+          fi
+
+      - name: Save adaptive throttle state
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: throttle_state.json
+          key: throttle-state-${{ github.run_id }}-${{ strategy.job-index }}-${{ github.run_attempt }}
+
       - name: Commit and Push Changes
         if: ${{ inputs.commit_results == 'true' }}
         run: |
+          set -uo pipefail
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add snapshots/
-          
-          # Use an architecture loop to handle git concurrency collision safely
-          for i in {1..5}; do
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit for job ${{ strategy.job-index }}."
+            exit 0
+          fi
+
+          git commit -m "Add snapshot archive for job ${{ strategy.job-index }} [skip ci]"
+
+          for attempt in 1 2 3 4 5; do
             git fetch origin main
-            git rebase origin/main || (git rebase --abort && git stash && git pull --rebase && git stash pop)
-            if git commit -m "Add snapshot archive for job ${{ strategy.job-index }} [skip ci]"; then
-              git push origin HEAD:main && break
+            if git rebase origin/main; then
+              if git push origin HEAD:main; then
+                echo "Pushed successfully on attempt $attempt."
+                exit 0
+              fi
             else
-              echo "No changes or push collision, retrying in 3s..."
-              sleep 3
+              echo "Rebase conflict - aborting rebase and retrying."
+              git rebase --abort
             fi
+            d=$(( 2 + RANDOM % 4 ))
+            echo "Push attempt $attempt failed, retrying in ${d}s..."
+            sleep "$d"
           done
+
+          echo "::error::Failed to push snapshot for job ${{ strategy.job-index }} after 5 attempts."
+          exit 1
