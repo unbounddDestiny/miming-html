@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Cozy Brewroom • Digital Barista</title>
+    <title>The Cozy Brewroom</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
@@ -743,7 +743,6 @@
             border: 1px solid var(--card-border);
             border-radius: var(--btn-radius);
             overflow: hidden;
-            animation: fade-in-up 0.5s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         .run-id-display-field {
@@ -990,18 +989,18 @@
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('archive-tab', this)">
-            <span class="label-main">🫗 Fresh Extraction</span>
+            <span class="label-main">Fresh Extraction</span>
             <span class="label-desc">Drop new background roast</span>
         </button>
         <button class="tab-btn" onclick="switchTab('resume-tab', this)">
-            <span class="label-main">🫙 Saved Carafe</span>
+            <span class="label-main">Saved Carafe</span>
             <span class="label-desc">Re-hook with Batch ID</span>
         </button>
     </div>
     
     <div class="form-layout">
         <div class="form-group">
-            <label for="passkeyInput">🔑 Master Barista Passkey</label>
+            <label for="passkeyInput">Master Barista Passkey</label>
             <input type="password" id="passkeyInput" placeholder="Enter house secret key to ignite coffee gridlines...">
         </div>
 
@@ -1011,12 +1010,12 @@
             </div>
 
             <div class="form-group">
-                <label for="urlInput">📋 Target Extraction Grounds (One URL per line)</label>
+                <label for="urlInput">Target Extraction Grounds (One URL per line)</label>
                 <textarea id="urlInput" placeholder="https://example.com&#10;https://artisan-roastery-vibes.com"></textarea>
             </div>
 
             <div class="form-group">
-                <label for="renderJs">⚙️ Filtration Matrix Kettle</label>
+                <label for="renderJs">Filtration Matrix Kettle</label>
                 <select id="renderJs">
                     <option value="true">Pressurized Vapor (Headless Chrome for Dynamic Scripts)</option>
                     <option value="false">Static Drip (Raw HTML Fetch — Hyper Light & Direct)</option>
@@ -1024,7 +1023,7 @@
             </div>
 
             <div class="form-group">
-                <label>🌾 Human Mill Consistency Check</label>
+                <label>Human Consistency Check</label>
                 <div class="lofi-captcha-container">
                     <div class="captcha-header-wrapper">
                         <div class="captcha-visual-pane">
@@ -1039,7 +1038,7 @@
             </div>
             
             <button class="action-button" id="actionBtn" onclick="startProcess()">
-                <span>🔥 Activate Burners & Extract</span>
+                <span>Activate Burners & Extract</span>
             </button>
         </div>
 
@@ -1049,12 +1048,12 @@
             </div>
 
             <div class="form-group">
-                <label for="runIdInput">🏷️ Cataloged Batch ID</label>
+                <label for="runIdInput">Cataloged Batch ID</label>
                 <input type="text" id="runIdInput" placeholder="e.g. 9876543210">
             </div>
             
             <button class="action-button" id="resumeBtn" onclick="resumeRunTracking()">
-                <span>🔌 Hook Into Active Carafe Line</span>
+                <span>Hook Into Active Carafe Line</span>
             </button>
         </div>
     </div>
@@ -1090,7 +1089,7 @@
 
     <div class="ledger-collapsible" id="ledgerCollapsible">
         <div class="ledger-trigger" onclick="toggleLedger()">
-            <span>📋 Inspect Barista Extract Logs</span>
+            <span>Inspect Barista Extract Logs</span>
         </div>
         <div class="log-box" id="logBox"></div>
     </div>
