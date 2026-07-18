@@ -58,7 +58,6 @@ jobs:
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          # Normalise: strip CR, trim whitespace, drop blank lines, de-duplicate
           sed -i 's/\r$//' urls_to_process.txt
           sed -i 's/^[[:space:]]*//; s/[[:space:]]*$//' urls_to_process.txt
           sed -i '/^[[:space:]]*$/d' urls_to_process.txt
@@ -133,43 +132,27 @@ jobs:
 
           is_bad_response() {
             local f="$1"
-            [ ! -s "$f" ] && return 0 # Empty file is definitely a failure
+            [ ! -s "$f" ] && return 0 # Empty file = failure
             
-            local size=$(wc -c < "$f" | tr -d ' ')
-            
-            # SMART CHECK: Real webpages are almost always > 15KB. 
-            # WAF/Block pages are almost always < 10KB.
-            if [ "$size" -gt 15000 ]; then
-              # Only fail large files if they have explicit, undeniable WAF markers
-              if grep -qiE 'just a moment|cf-browser-verification|please verify you are a human' "$f" >/dev/null 2>&1; then
-                return 0
-              fi
-              return 1 # It's a good, large file
+            # STRICT WAF DETECTION ONLY
+            # These phrases are highly specific to Cloudflare, Akamai, Imperva, etc.
+            # We do NOT check for "404" or "Not Found" because archiving a 404 page is still a valid archive.
+            if grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|ddos protection|access denied|error 403|error 429|ray id' "$f" >/dev/null 2>&1; then
+              return 0 # It is a WAF block page
             fi
             
-            # For smaller files, check a strict set of actual WAF signatures
-            # (Removed generic words like "blocked" or "captcha" that appear in normal JS)
-            if grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|ddos protection|access denied|error 403|error 429' "$f" >/dev/null 2>&1; then
-              return 0
-            fi
-            
-            return 1 # Good file
+            return 1 # It is a legitimate response (even if it's a custom 404 page)
           }
 
           for i in "${!URLS[@]}"; do
             URL="${URLS[$i]}"
             UA="${UAS[$RANDOM % ${#UAS[@]}]}"
             
-            # Create clean, ordered filename: 001_react.dev.html
-            ORDER=$(printf "%03d" $((i+1)))
-            # Extract domain only (e.g., https://www.react.dev/path -> react.dev)
-            DOMAIN=$(echo "$URL" | sed -e 's/https\?:\/\///' -e 's/\/.*//' -e 's/^www\.//')
-            SAFE_NAME=$(echo "$DOMAIN" | sed -e 's/[^A-Za-z0-9.-]/_/g' | cut -c 1-30)
-            output_file="snapshots/${ORDER}_${SAFE_NAME}.html"
+            # EXACT NAMING CONVENTION REQUESTED
+            output_file="snapshots/url_${i}.html"
             
             echo "================================================================"
-            echo "Processing [$ORDER/$TOTAL]: $URL"
-            echo "Output file: $output_file"
+            echo "Processing [url_${i}]: $URL"
             
             JITTER=$(( RANDOM % 2 ))
             ACTUAL_DELAY=$(( CURRENT_DELAY + JITTER ))
@@ -219,8 +202,8 @@ jobs:
               fi
 
               if [ "$SUCCESS" = "true" ]; then
-                echo "✅ Successfully archived $URL"
-                CURRENT_DELAY=2 # Reset delay to baseline on success to keep it fast
+                echo "✅ Successfully archived $URL -> $output_file"
+                CURRENT_DELAY=2 # Reset delay to baseline on success
                 break
               else
                 echo "⚠️ Failed or blocked on attempt $ATTEMPT for $URL"
