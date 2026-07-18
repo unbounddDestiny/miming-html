@@ -27,16 +27,6 @@ on:
         options:
           - "true"
           - "false"
-      max_parallel:
-        description: "Max concurrent archive jobs (fixed for the whole run - GH Actions can't change this mid-run, see notes)"
-        required: true
-        default: "2"
-        type: choice
-        options:
-          - "1"
-          - "2"
-          - "3"
-          - "4"
 
 permissions:
   contents: write
@@ -68,10 +58,7 @@ jobs:
             cat "$URLS_FILE" >> urls_to_process.txt
           fi
 
-          # Normalise: strip CR (CRLF files), trim whitespace, drop blank
-          # lines, de-duplicate while preserving order. Fewer duplicate
-          # hits against the same target also means less chance of
-          # looking like abusive/bot traffic.
+          # Normalise: strip CR (CRLF files), trim whitespace, drop blank lines, de-duplicate
           sed -i 's/\r$//' urls_to_process.txt
           sed -i 's/^[[:space:]]*//; s/[[:space:]]*$//' urls_to_process.txt
           sed -i '/^[[:space:]]*$/d' urls_to_process.txt
@@ -79,9 +66,7 @@ jobs:
           mv urls_dedup.txt urls_to_process.txt
 
           JSON_ARRAY=$(jq -R -s -c 'split("\n") | map(select(length > 0))' urls_to_process.txt)
-
           echo "matrix=${JSON_ARRAY}" >> "$GITHUB_OUTPUT"
-          echo "URLs to process: ${JSON_ARRAY}"
 
   archive:
     needs: prep-urls
@@ -91,7 +76,7 @@ jobs:
       matrix:
         url: ${{ fromJson(needs.prep-urls.outputs.matrix) }}
       fail-fast: false
-      max-parallel: ${{ inputs.max_parallel }}
+      max-parallel: 2 # SAFE LAYER 7 LIMIT: Staggered execution to prevent firewall blocks
 
     name: "Archive: ${{ matrix.url }}"
 
@@ -103,8 +88,6 @@ jobs:
         id: datebucket
         run: echo "value=$(date -u +'%Y-%m')" >> "$GITHUB_OUTPUT"
 
-      # Cache key is bucketed by month so a fixed binary doesn't get stuck
-      # forever once cached - it refreshes against upstream "latest" monthly.
       - name: Cache Monolith Binary
         id: cache-monolith
         uses: actions/cache@v4
@@ -118,41 +101,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
-          echo "Looking up latest monolith release..."
           ASSET_URL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/Y2Z/monolith/releases/latest \
             | jq -r '.assets[] | select(.name == "monolith-gnu-linux-x86_64") | .browser_download_url')
 
           if [ -n "$ASSET_URL" ]; then
-            echo "Downloading $ASSET_URL"
             curl -fL -o /usr/local/bin/monolith "$ASSET_URL" && chmod +x /usr/local/bin/monolith
           fi
 
-          # Some prebuilt releases have been linked against an OpenSSL
-          # version newer runner images don't ship - smoke-test before
-          # trusting the binary, and fall back to building from source
-          # if it won't even run.
           if [ ! -x /usr/local/bin/monolith ] || ! /usr/local/bin/monolith -V >/dev/null 2>&1; then
-            echo "Prebuilt binary unavailable or unusable - building from source."
             cargo install monolith --locked --root /tmp/monolith-cargo
             sudo cp /tmp/monolith-cargo/bin/monolith /usr/local/bin/monolith
             sudo chmod +x /usr/local/bin/monolith
           fi
 
-          monolith -V
-
       - name: Configure system-wide reputable adblocker (StevenBlack hosts)
         run: |
-          echo "Setting up adblock hosts..."
           curl -sSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | sudo tee -a /etc/hosts > /dev/null
 
-      # Best-effort, cross-job "shared state" for the adaptive throttle
-      # below. GitHub Actions has no real live shared memory between
-      # matrix jobs, so this uses the cache service as a lightweight KV
-      # store: each job restores whatever the most recently *finished*
-      # job in this run saved, then saves its own result under a unique
-      # key. Because max-parallel staggers job starts, later jobs really
-      # do get to see how earlier ones went.
       - name: Restore adaptive throttle state
         id: restore-throttle
         continue-on-error: true
@@ -174,17 +140,8 @@ jobs:
           set -uo pipefail
           mkdir -p snapshots
           output_file="snapshots/url_${JOB_INDEX}.html"
-          echo "== Archiving target URL: $URL =="
 
-          # ---------------------------------------------------------------
-          # Adaptive pacing (AIMD-style, shared across jobs via cache).
-          # LEVEL 0 = fastest/most aggressive, 5 = slowest/most cautious.
-          # A success eases LEVEL down by 1; a failure jumps it up by 2 -
-          # back off fast, recover slow, on purpose. Jitter is always
-          # added on top of the base delay for this level.
-          # ---------------------------------------------------------------
           BASE_DELAYS=(1 2 4 8 15 30)
-
           if [ -f throttle_state.json ]; then
             LEVEL=$(jq -r '.level // 1' throttle_state.json 2>/dev/null || echo 1)
           else
@@ -197,22 +154,14 @@ jobs:
           BASE_DELAY=${BASE_DELAYS[$LEVEL]}
           JITTER=$(( RANDOM % (BASE_DELAY + 2) ))
           PACING_DELAY=$((BASE_DELAY + JITTER))
-          echo "Throttle level: $LEVEL -> pacing delay ${PACING_DELAY}s (base ${BASE_DELAY}s + jitter ${JITTER}s)"
           sleep "$PACING_DELAY"
 
-          # ---- helpers ----
           is_bad_response() {
-            # Heuristic only: empty/tiny output, or a small file that
-            # contains a common bot-challenge phrase. The size gate on
-            # the phrase check matters - a large legitimate page that
-            # merely *mentions* e.g. "captcha" shouldn't be flagged.
             local f="$1"
             [ ! -s "$f" ] && return 0
             local size
             size=$(wc -c < "$f")
-            if [ "$size" -lt 2048 ]; then
-              return 0
-            fi
+            if [ "$size" -lt 2048 ]; then return 0; fi
             if [ "$size" -lt 51200 ] && grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue' "$f"; then
               return 0
             fi
@@ -220,10 +169,6 @@ jobs:
           }
 
           retry_delay() {
-            # Short, jittered gap for retrying the SAME url - kept
-            # deliberately minimal. This is separate from the cross-job
-            # pacing delay above, which handles the "back off harder
-            # when things are going badly" side of things.
             echo $(( 2 + RANDOM % 4 ))
           }
 
@@ -231,12 +176,7 @@ jobs:
 
           if [ "$RENDER_JS" = "true" ]; then
             dom_file=$(mktemp)
-
-            # Stage 1: render with headless Chrome. Kept separate from
-            # bundling so a retry doesn't have to re-launch Chrome if
-            # it's specifically the asset-bundling stage that's flaky.
             for attempt in 1 2 3; do
-              echo "Render attempt ${attempt}/3..."
               if timeout 60s google-chrome \
                   --headless=new \
                   --disable-gpu \
@@ -251,76 +191,45 @@ jobs:
                   --disable-blink-features=AutomationControlled \
                   --lang="en-US" \
                   --user-agent="$UA" \
-                  --dump-dom "$URL" > "$dom_file" 2>/tmp/chrome_stderr.log; then
-                if ! is_bad_response "$dom_file"; then
-                  break
-                fi
-                echo "Render output looked like a block/challenge page (or was too small)."
-              else
-                echo "Chrome render failed (exit $?)."
-                tail -n 20 /tmp/chrome_stderr.log 2>/dev/null || true
+                  --dump-dom "$URL" > "$dom_file" 2>/dev/null; then
+                if ! is_bad_response "$dom_file"; then break; fi
               fi
-              if [ "$attempt" -lt 3 ]; then
-                d=$(retry_delay)
-                echo "Retrying render in ${d}s..."
-                sleep "$d"
-              fi
+              if [ "$attempt" -lt 3 ]; then sleep $(retry_delay); fi
             done
 
-            # Stage 2: bundle the saved DOM with monolith.
             for attempt in 1 2 3; do
-              echo "Bundle attempt ${attempt}/3..."
               if timeout 60s monolith - -I -e -b "$URL" -u "$UA" -o "$output_file" < "$dom_file"; then
                 if ! is_bad_response "$output_file"; then
                   SUCCESS=true
                   break
                 fi
-                echo "Bundled output looked like a block/challenge page (or was too small)."
-              else
-                echo "Monolith bundling failed (exit $?)."
               fi
-              if [ "$attempt" -lt 3 ]; then
-                d=$(retry_delay)
-                echo "Retrying bundle in ${d}s..."
-                sleep "$d"
-              fi
+              if [ "$attempt" -lt 3 ]; then sleep $(retry_delay); fi
             done
-
             rm -f "$dom_file"
           else
             for attempt in 1 2 3; do
-              echo "Direct fetch attempt ${attempt}/3..."
               if timeout 45s monolith "$URL" -I -e -u "$UA" -o "$output_file"; then
                 if ! is_bad_response "$output_file"; then
                   SUCCESS=true
                   break
                 fi
-                echo "Fetched output looked like a block/challenge page (or was too small)."
-              else
-                echo "Monolith fetch failed (exit $?)."
               fi
-              if [ "$attempt" -lt 3 ]; then
-                d=$(retry_delay)
-                echo "Retrying in ${d}s..."
-                sleep "$d"
-              fi
+              if [ "$attempt" -lt 3 ]; then sleep $(retry_delay); fi
             done
           fi
 
-          # ---- update shared throttle state for the next job to read ----
           if [ "$SUCCESS" = "true" ]; then
             NEW_LEVEL=$((LEVEL - 1))
             [ "$NEW_LEVEL" -lt 0 ] && NEW_LEVEL=0
-            echo "Result: success. Lowering throttle level to $NEW_LEVEL."
           else
             NEW_LEVEL=$((LEVEL + 2))
             [ "$NEW_LEVEL" -gt 5 ] && NEW_LEVEL=5
-            echo "Result: failure. Raising throttle level to $NEW_LEVEL."
           fi
           jq -n --argjson level "$NEW_LEVEL" '{level: $level}' > throttle_state.json
 
           if [ "$SUCCESS" != "true" ]; then
-            echo "::warning::Failed to archive $URL after retries."
+            echo "::warning::Failed to archive $URL"
             exit 1
           fi
 
@@ -341,7 +250,6 @@ jobs:
           git add snapshots/
 
           if git diff --cached --quiet; then
-            echo "Nothing to commit for job ${{ strategy.job-index }}."
             exit 0
           fi
 
@@ -349,19 +257,11 @@ jobs:
 
           for attempt in 1 2 3 4 5; do
             git fetch origin main
-            if git rebase origin/main; then
-              if git push origin HEAD:main; then
-                echo "Pushed successfully on attempt $attempt."
-                exit 0
-              fi
+            if git rebase origin/main && git push origin HEAD:main; then
+              exit 0
             else
-              echo "Rebase conflict - aborting rebase and retrying."
-              git rebase --abort
+              git rebase --abort || true
             fi
-            d=$(( 2 + RANDOM % 4 ))
-            echo "Push attempt $attempt failed, retrying in ${d}s..."
-            sleep "$d"
+            sleep $(( 2 + RANDOM % 4 ))
           done
-
-          echo "::error::Failed to push snapshot for job ${{ strategy.job-index }} after 5 attempts."
           exit 1
