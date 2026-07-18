@@ -107,6 +107,12 @@ jobs:
           fi
           monolith -V
 
+      - name: Configure system-wide ad/tracker blocking (StevenBlack)
+        run: |
+          echo "Applying StevenBlack hosts file to block ads/trackers at OS level..."
+          curl -sSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts | sudo tee -a /etc/hosts > /dev/null
+          echo "✅ Ad/tracker domains blocked. This will speed up loads and prevent ad-network WAF triggers."
+
       - name: Archive URLs Sequentially
         id: archive
         env:
@@ -121,7 +127,10 @@ jobs:
 
           SUCCESS_COUNT=0
           FAIL_COUNT=0
-          CURRENT_DELAY=2 # Fast, safe 2-second baseline delay
+          
+          # OPTIMIZATION: 1 second baseline is the industry standard for "polite" crawling. 
+          # It is completely safe for a single IP and drastically reduces total runtime.
+          CURRENT_DELAY=1 
 
           UAS=(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -132,31 +141,28 @@ jobs:
 
           is_bad_response() {
             local f="$1"
-            [ ! -s "$f" ] && return 0 # Empty file = failure
+            [ ! -s "$f" ] && return 0 
             
-            # STRICT WAF DETECTION ONLY
-            # These phrases are highly specific to Cloudflare, Akamai, Imperva, etc.
-            # We do NOT check for "404" or "Not Found" because archiving a 404 page is still a valid archive.
             if grep -qiE 'just a moment|attention required|checking your browser|cf-browser-verification|please verify you are a human|enable javascript and cookies to continue|ddos protection|access denied|error 403|error 429|ray id' "$f" >/dev/null 2>&1; then
-              return 0 # It is a WAF block page
+              return 0
             fi
             
-            return 1 # It is a legitimate response (even if it's a custom 404 page)
+            return 1
           }
 
           for i in "${!URLS[@]}"; do
             URL="${URLS[$i]}"
             UA="${UAS[$RANDOM % ${#UAS[@]}]}"
             
-            # EXACT NAMING CONVENTION REQUESTED
             output_file="snapshots/url_${i}.html"
             
             echo "================================================================"
             echo "Processing [url_${i}]: $URL"
             
+            # 0 or 1 second jitter added to the 1s baseline (total 1-2s wait)
             JITTER=$(( RANDOM % 2 ))
             ACTUAL_DELAY=$(( CURRENT_DELAY + JITTER ))
-            echo "Waiting ${ACTUAL_DELAY}s before request (Layer 7 protection active)..."
+            echo "Waiting ${ACTUAL_DELAY}s before request..."
             sleep "$ACTUAL_DELAY"
 
             SUCCESS=false
@@ -168,6 +174,8 @@ jobs:
               
               if [ "$RENDER_JS" = "true" ]; then
                 dom_file=$(mktemp)
+                # OPTIMIZATION: Reduced virtual-time-budget from 12000 to 8000 (8 seconds).
+                # Added flags to prevent Chrome from throttling background rendering.
                 if timeout 60s google-chrome \
                     --headless=new \
                     --disable-gpu \
@@ -177,7 +185,10 @@ jobs:
                     --incognito \
                     --window-size=1920,1080 \
                     --run-all-compositor-stages-before-draw \
-                    --virtual-time-budget=12000 \
+                    --virtual-time-budget=8000 \
+                    --disable-background-timer-throttling \
+                    --disable-backgrounding-occluded-windows \
+                    --disable-renderer-backgrounding \
                     --blink-settings=imagesEnabled=true \
                     --disable-blink-features=AutomationControlled \
                     --lang="en-US" \
@@ -203,13 +214,14 @@ jobs:
 
               if [ "$SUCCESS" = "true" ]; then
                 echo "✅ Successfully archived $URL -> $output_file"
-                CURRENT_DELAY=2 # Reset delay to baseline on success
+                CURRENT_DELAY=1 # Instantly reset to 1s on success for maximum speed
                 break
               else
                 echo "⚠️ Failed or blocked on attempt $ATTEMPT for $URL"
                 ATTEMPT=$((ATTEMPT + 1))
+                # Exponential backoff on failure, capped at 15s
                 CURRENT_DELAY=$(( CURRENT_DELAY * 2 + 1 ))
-                [ $CURRENT_DELAY -gt 15 ] && CURRENT_DELAY=15 # Cap max delay at 15s
+                [ $CURRENT_DELAY -gt 15 ] && CURRENT_DELAY=15 
                 
                 if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
                   echo "Backing off: Waiting ${CURRENT_DELAY}s before retry..."
